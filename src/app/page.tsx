@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, ArrowUpRight, Monitor, Smartphone } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowUpRight, Monitor, Smartphone, ExternalLink } from "lucide-react";
 
 interface Site {
   name: string;
@@ -47,38 +47,49 @@ const sites: Site[] = [
   { name: "Tucson Twinkle", industry: "Holiday Lights", url: "https://tucson-twinkle-v4.vercel.app", style: "V4", colors: ["#FFD700", "#DC2626"], font: "Quicksand", description: "Twinkling light particles, magical, 4 tiers" },
 ];
 
+const styleBadge = (s: string) =>
+  s === "V1" ? "bg-blue-500/15 text-blue-400" :
+  s === "V2" ? "bg-yellow-500/15 text-yellow-400" :
+  s === "V3" ? "bg-purple-500/15 text-purple-400" :
+  "bg-emerald-500/15 text-emerald-400";
+
 export default function Library() {
   const [current, setCurrent] = useState(0);
   const [filter, setFilter] = useState<"All" | "V1" | "V2" | "V3" | "V4">("All");
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [dragging, setDragging] = useState(false);
   const [dragX, setDragX] = useState(0);
+  const [iframeReady, setIframeReady] = useState(false);
 
   const dragStartX = useRef(0);
   const dragStartTime = useRef(0);
   const wheelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wheelLocked = useRef(false);
+  const frameRef = useRef<HTMLDivElement>(null);
 
   const filtered = filter === "All" ? sites : sites.filter(s => s.style === filter);
   const total = filtered.length;
 
-  const next = useCallback(() => setCurrent(c => (c + 1) % total), [total]);
-  const prev = useCallback(() => setCurrent(c => (c - 1 + total) % total), [total]);
+  const next = useCallback(() => { setCurrent(c => (c + 1) % total); setIframeReady(false); }, [total]);
+  const prev = useCallback(() => { setCurrent(c => (c - 1 + total) % total); setIframeReady(false); }, [total]);
 
-  useEffect(() => { setCurrent(0); }, [filter]);
+  useEffect(() => { setCurrent(0); setIframeReady(false); }, [filter]);
+  useEffect(() => { const t = setTimeout(() => setIframeReady(true), 300); return () => clearTimeout(t); }, [current]);
 
-  // Keyboard
+  // Keyboard + wheel
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => { if (e.key === "ArrowRight") next(); if (e.key === "ArrowLeft") prev(); };
     const wheelHandler = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-iframe-scroll]")) return;
       e.preventDefault();
       if (wheelLocked.current) return;
       const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (Math.abs(delta) > 15) {
+      if (Math.abs(delta) > 20) {
         wheelLocked.current = true;
         delta > 0 ? next() : prev();
         if (wheelTimeout.current) clearTimeout(wheelTimeout.current);
-        wheelTimeout.current = setTimeout(() => { wheelLocked.current = false; }, 400);
+        wheelTimeout.current = setTimeout(() => { wheelLocked.current = false; }, 500);
       }
     };
     window.addEventListener("keydown", keyHandler);
@@ -86,113 +97,175 @@ export default function Library() {
     return () => { window.removeEventListener("keydown", keyHandler); window.removeEventListener("wheel", wheelHandler); };
   }, [next, prev]);
 
-  // Mouse drag
-  const onDragStart = (e: React.MouseEvent) => {
+  // Drag handlers (only on the frame area)
+  const onPointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest("[data-iframe-scroll]")) return;
     setDragging(true);
     dragStartX.current = e.clientX;
     dragStartTime.current = Date.now();
     setDragX(0);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
-  const onDragMove = (e: React.MouseEvent) => {
+  const onPointerMove = (e: React.PointerEvent) => {
     if (!dragging) return;
     setDragX(e.clientX - dragStartX.current);
   };
-  const onDragEnd = () => {
+  const onPointerUp = () => {
     if (!dragging) return;
     setDragging(false);
-    const threshold = window.innerWidth * 0.15; // 15% of screen width
-    const velocity = Math.abs(dragX) / (Date.now() - dragStartTime.current); // px/ms
-    if (dragX < -threshold || (dragX < -30 && velocity > 0.3)) next();
-    else if (dragX > threshold || (dragX > 30 && velocity > 0.3)) prev();
+    const threshold = window.innerWidth * 0.12;
+    const velocity = Math.abs(dragX) / (Date.now() - dragStartTime.current);
+    if (dragX < -threshold || (dragX < -20 && velocity > 0.25)) next();
+    else if (dragX > threshold || (dragX > 20 && velocity > 0.25)) prev();
     setDragX(0);
   };
 
-  // Touch drag
-  const onTouchStart = (e: React.TouchEvent) => { dragStartX.current = e.touches[0].clientX; dragStartTime.current = Date.now(); };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - dragStartX.current;
-    const velocity = Math.abs(dx) / (Date.now() - dragStartTime.current);
-    const threshold = window.innerWidth * 0.15;
-    if (dx < -threshold || (dx < -30 && velocity > 0.3)) next();
-    else if (dx > threshold || (dx > 30 && velocity > 0.3)) prev();
-  };
-
   const site = filtered[current];
-  const iframeW = viewMode === "desktop" ? 1280 : 390;
-  const iframeH = viewMode === "desktop" ? 3000 : 2400;
 
   return (
-    <div
-      className="relative h-screen w-screen overflow-hidden select-none"
-      onMouseDown={onDragStart}
-      onMouseMove={onDragMove}
-      onMouseUp={onDragEnd}
-      onMouseLeave={onDragEnd}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-      style={{ cursor: dragging ? "grabbing" : "grab" }}
-    >
+    <div className="relative h-[100dvh] w-screen overflow-hidden select-none bg-void text-ink">
       <div className="mesh-bg" />
 
-      {/* Header */}
-      <header className="relative z-30 flex items-center justify-between px-6 md:px-10 pt-4 pb-2">
-        <div>
-          <h1 className="font-display font-bold text-lg">
-            <span className="text-accent">Digital Official</span> <span className="text-muted font-normal text-sm">Site Library</span>
+      {/* ═══ HEADER ═══ */}
+      <header className="relative z-30 px-4 sm:px-6 pt-3 pb-2">
+        <div className="flex items-center justify-between">
+          <h1 className="font-display font-bold text-base sm:text-lg">
+            <span className="text-accent">Digital Official</span>{" "}
+            <span className="text-muted font-normal text-xs sm:text-sm">Site Library</span>
           </h1>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* View toggle */}
-          <div className="flex items-center gap-1 glass rounded-full p-1">
-            <button onClick={() => setViewMode("desktop")} className={`p-1.5 rounded-full transition-colors ${viewMode === "desktop" ? "bg-white/10 text-accent" : "text-muted"}`}><Monitor className="h-3.5 w-3.5" /></button>
-            <button onClick={() => setViewMode("mobile")} className={`p-1.5 rounded-full transition-colors ${viewMode === "mobile" ? "bg-white/10 text-accent" : "text-muted"}`}><Smartphone className="h-3.5 w-3.5" /></button>
-          </div>
-          {/* Filters */}
-          <div className="flex items-center gap-1">
-            {(["All", "V1", "V2", "V3", "V4"] as const).map(v => (
-              <button key={v} onClick={() => setFilter(v)} className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${filter === v ? "glass-strong text-accent" : "text-muted hover:text-ink"}`}>
-                {v}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* View toggle — hidden on small mobile */}
+            <div className="hidden sm:flex items-center gap-1 glass rounded-full p-1">
+              <button onClick={() => setViewMode("desktop")} className={`p-1.5 rounded-full transition-colors ${viewMode === "desktop" ? "bg-white/10 text-accent" : "text-muted"}`}>
+                <Monitor className="h-3.5 w-3.5" />
               </button>
-            ))}
+              <button onClick={() => setViewMode("mobile")} className={`p-1.5 rounded-full transition-colors ${viewMode === "mobile" ? "bg-white/10 text-accent" : "text-muted"}`}>
+                <Smartphone className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {/* Filters */}
+            <div className="flex items-center gap-0.5 sm:gap-1">
+              {(["All", "V1", "V2", "V3", "V4"] as const).map(v => (
+                <button key={v} onClick={() => setFilter(v)} className={`px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold transition-all ${filter === v ? "glass-strong text-accent" : "text-muted hover:text-ink"}`}>
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main preview area */}
-      <div className="relative z-10 flex items-start justify-center" style={{ height: "calc(100vh - 110px)" }}>
-        {/* Side info panel */}
-        <div className="hidden lg:flex flex-col justify-center h-full w-[260px] pl-8 pr-4 flex-shrink-0">
-          <div className="h-1 w-12 rounded-full mb-4" style={{ background: `linear-gradient(90deg, ${site?.colors[0]}, ${site?.colors[1]})` }} />
-          <p className="font-display font-bold text-2xl leading-tight mb-1">{site?.name}</p>
-          <p className="text-sm text-muted mb-3">{site?.industry}</p>
-          <div className="flex items-center gap-2 mb-3">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              site?.style === "V1" ? "bg-blue-500/10 text-blue-400" :
-              site?.style === "V2" ? "bg-yellow-500/10 text-yellow-400" :
-              site?.style === "V3" ? "bg-purple-500/10 text-purple-400" :
-              "bg-emerald-500/10 text-emerald-400"
-            }`}>{site?.style}</span>
+      {/* ═══ MOBILE / TABLET: Stacked layout ═══ */}
+      <div className="lg:hidden flex flex-col h-[calc(100dvh-100px)]">
+        {/* Site info bar */}
+        <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-1 w-8 rounded-full flex-shrink-0" style={{ background: `linear-gradient(90deg, ${site?.colors[0]}, ${site?.colors[1]})` }} />
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${styleBadge(site?.style || "V1")}`}>{site?.style}</span>
+              <span className="text-[9px] text-muted">{site?.font}</span>
+            </div>
+            <p className="font-display font-bold text-lg leading-tight truncate">{site?.name}</p>
+            <p className="text-xs text-muted truncate">{site?.industry} &middot; {site?.description}</p>
+          </div>
+          <a href={site?.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 ml-3 glass rounded-full p-2.5 text-accent hover:text-electric" onClick={e => e.stopPropagation()}>
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
+
+        {/* Browser frame — fills remaining space */}
+        <div
+          className="flex-1 mx-3 sm:mx-5 mb-2 relative"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          style={{ cursor: dragging ? "grabbing" : "grab", touchAction: "pan-y" }}
+        >
+          <div
+            className="h-full rounded-xl overflow-hidden glass-strong"
+            style={{
+              transform: dragging ? `translateX(${dragX}px) rotate(${dragX * 0.008}deg)` : undefined,
+              transition: dragging ? "none" : "transform 0.4s cubic-bezier(0.16,1,0.3,1)",
+            }}
+          >
+            {/* Browser chrome */}
+            <div className="h-7 bg-white/[.03] border-b border-white/[.06] flex items-center px-3 gap-2 flex-shrink-0">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 rounded-full bg-red-500/40" />
+                <div className="w-2 h-2 rounded-full bg-yellow-500/40" />
+                <div className="w-2 h-2 rounded-full bg-green-500/40" />
+              </div>
+              <div className="flex-1 mx-1">
+                <div className="bg-white/[.04] rounded px-2 py-0.5 text-[8px] text-muted truncate text-center">{site?.url?.replace("https://", "")}</div>
+              </div>
+            </div>
+            {/* Scrollable iframe */}
+            <div data-iframe-scroll className="overflow-y-auto overflow-x-hidden" style={{ height: "calc(100% - 28px)" }}>
+              {iframeReady && (
+                <iframe
+                  src={site?.url}
+                  title={site?.name}
+                  className="pointer-events-auto"
+                  style={{
+                    width: 1280,
+                    height: 4000,
+                    transform: `scale(${(window?.innerWidth ? Math.min(window.innerWidth - 24, 680) : 380) / 1280})`,
+                    transformOrigin: "top left",
+                  }}
+                  loading="lazy"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom nav */}
+        <div className="px-4 pb-3 pt-1">
+          <div className="flex items-center justify-center gap-4">
+            <button onClick={prev} className="glass w-9 h-9 rounded-full flex items-center justify-center"><ChevronLeft className="h-4 w-4" /></button>
+            <span className="font-display font-bold text-xs text-muted"><span className="text-ink">{current + 1}</span> / {total}</span>
+            <button onClick={next} className="glass w-9 h-9 rounded-full flex items-center justify-center"><ChevronRight className="h-4 w-4" /></button>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ DESKTOP: Three-column layout ═══ */}
+      <div className="hidden lg:flex items-stretch" style={{ height: "calc(100dvh - 52px)" }}>
+        {/* Left info panel */}
+        <div className="w-[280px] flex-shrink-0 flex flex-col justify-center pl-8 pr-5">
+          <div className="h-1 w-14 rounded-full mb-5" style={{ background: `linear-gradient(90deg, ${site?.colors[0]}, ${site?.colors[1]})` }} />
+          <p className="font-display font-bold text-2xl xl:text-3xl leading-tight mb-1">{site?.name}</p>
+          <p className="text-sm text-muted mb-4">{site?.industry}</p>
+          <div className="flex items-center gap-2 mb-4">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${styleBadge(site?.style || "V1")}`}>{site?.style}</span>
             <span className="text-[10px] text-muted">{site?.font}</span>
           </div>
-          <p className="text-xs text-muted leading-relaxed mb-4">{site?.description}</p>
+          <p className="text-xs text-muted leading-relaxed mb-5">{site?.description}</p>
           <a href={site?.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-electric transition-colors" onClick={e => e.stopPropagation()}>
             Visit site <ArrowUpRight className="h-3 w-3" />
           </a>
         </div>
 
-        {/* Browser frame with scrollable iframe */}
-        <div className="relative flex-1 max-w-[680px] h-full flex items-start justify-center pt-2">
+        {/* Center: browser frame */}
+        <div
+          className="flex-1 flex items-start justify-center pt-2 pb-4"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          style={{ cursor: dragging ? "grabbing" : "grab" }}
+        >
           <div
-            className="relative rounded-xl overflow-hidden glass-strong transition-all duration-500"
+            ref={frameRef}
+            className="relative rounded-xl overflow-hidden glass-strong h-full transition-all duration-500"
             style={{
-              width: viewMode === "desktop" ? "100%" : 240,
-              height: "calc(100vh - 140px)",
-              transform: dragging ? `translateX(${dragX}px) rotate(${dragX * 0.01}deg)` : undefined,
-              transition: dragging ? "none" : "transform 0.4s cubic-bezier(0.16,1,0.3,1), width 0.5s ease",
+              width: viewMode === "desktop" ? "100%" : 280,
+              maxWidth: viewMode === "desktop" ? 720 : 280,
+              transform: dragging ? `translateX(${dragX}px) rotate(${dragX * 0.008}deg)` : undefined,
+              transition: dragging ? "none" : "transform 0.4s cubic-bezier(0.16,1,0.3,1), width 0.5s ease, max-width 0.5s ease",
             }}
           >
             {/* Browser chrome */}
-            <div className="h-8 bg-white/[.03] border-b border-white/[.06] flex items-center px-3 gap-2 flex-shrink-0">
+            <div className="h-8 bg-white/[.03] border-b border-white/[.06] flex items-center px-3 gap-2">
               <div className="flex gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/40" />
                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" />
@@ -203,56 +276,47 @@ export default function Library() {
               </div>
             </div>
             {/* Scrollable iframe */}
-            <div className="overflow-y-auto overflow-x-hidden" style={{ height: "calc(100% - 32px)" }} onMouseDown={e => e.stopPropagation()}>
-              <iframe
-                src={site?.url}
-                title={site?.name}
-                className="pointer-events-auto"
-                style={{
-                  width: iframeW,
-                  height: iframeH,
-                  transform: `scale(${viewMode === "desktop" ? 680 / iframeW : 240 / iframeW})`,
-                  transformOrigin: "top left",
-                }}
-                loading="lazy"
-              />
+            <div data-iframe-scroll className="overflow-y-auto overflow-x-hidden" style={{ height: "calc(100% - 32px)" }}>
+              {iframeReady && (
+                <iframe
+                  src={site?.url}
+                  title={site?.name}
+                  className="pointer-events-auto"
+                  style={{
+                    width: viewMode === "desktop" ? 1280 : 390,
+                    height: 4000,
+                    transform: `scale(${viewMode === "desktop" ? 720 / 1280 : 280 / 390})`,
+                    transformOrigin: "top left",
+                  }}
+                  loading="lazy"
+                />
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right side — mobile info (lg:hidden) + nav */}
-        <div className="hidden lg:flex flex-col justify-center h-full w-[260px] pr-8 pl-4 flex-shrink-0">
-          <div className="space-y-2">
+        {/* Right: site list + nav */}
+        <div className="w-[260px] flex-shrink-0 flex flex-col pr-6 pl-4 py-4">
+          <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
             {filtered.map((s, i) => (
               <button
                 key={s.name}
-                onClick={() => setCurrent(i)}
+                onClick={() => { setCurrent(i); setIframeReady(false); }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all ${
-                  i === current ? "glass-strong text-ink" : "text-muted/60 hover:text-muted"
+                  i === current ? "glass-strong text-ink" : "text-muted/50 hover:text-muted hover:bg-white/[.02]"
                 }`}
               >
-                <span className="font-semibold">{s.name}</span>
+                <span className="font-semibold block truncate">{s.name}</span>
                 {i === current && <span className="block text-[10px] text-muted mt-0.5">{s.industry}</span>}
               </button>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Bottom controls */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 pb-4">
-        <div className="flex items-center justify-center gap-6">
-          <button onClick={prev} className="glass w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/[.08] transition-colors"><ChevronLeft className="h-4 w-4" /></button>
-          <div className="flex items-center gap-1">
-            {filtered.map((_, i) => (
-              <button key={i} onClick={() => setCurrent(i)} className={`nav-dot ${i === current ? "active" : ""}`} />
-            ))}
+          {/* Desktop bottom nav */}
+          <div className="pt-3 mt-2 border-t border-white/[.06] flex items-center justify-center gap-4">
+            <button onClick={prev} className="glass w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/[.08]"><ChevronLeft className="h-4 w-4" /></button>
+            <span className="font-display font-bold text-xs text-muted"><span className="text-ink">{current + 1}</span>/{total}</span>
+            <button onClick={next} className="glass w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/[.08]"><ChevronRight className="h-4 w-4" /></button>
           </div>
-          <button onClick={next} className="glass w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/[.08] transition-colors"><ChevronRight className="h-4 w-4" /></button>
-        </div>
-        {/* Mobile info bar */}
-        <div className="lg:hidden text-center mt-2">
-          <p className="font-display font-bold text-sm">{site?.name} <span className="text-muted font-normal">· {site?.industry}</span></p>
         </div>
       </div>
     </div>
