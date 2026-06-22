@@ -97,20 +97,42 @@ export default function Library() {
     return () => { window.removeEventListener("keydown", keyHandler); window.removeEventListener("wheel", wheelHandler); };
   }, [next, prev]);
 
-  // Drag handlers (only on the frame area)
-  const onPointerDown = (e: React.PointerEvent) => {
+  // Touch handlers for mobile swipe
+  const onTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest("[data-iframe-scroll]")) return;
+    dragStartX.current = e.touches[0].clientX;
+    dragStartTime.current = Date.now();
+    setDragX(0);
+    setDragging(true);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - dragStartX.current;
+    setDragX(dx);
+  };
+  const onTouchEnd = () => {
+    if (!dragging) return;
+    setDragging(false);
+    const threshold = window.innerWidth * 0.12;
+    const velocity = Math.abs(dragX) / (Date.now() - dragStartTime.current);
+    if (dragX < -threshold || (dragX < -20 && velocity > 0.25)) next();
+    else if (dragX > threshold || (dragX > 20 && velocity > 0.25)) prev();
+    setDragX(0);
+  };
+
+  // Mouse drag for desktop
+  const onMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("[data-iframe-scroll]")) return;
     setDragging(true);
     dragStartX.current = e.clientX;
     dragStartTime.current = Date.now();
     setDragX(0);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
-  const onPointerMove = (e: React.PointerEvent) => {
+  const onMouseMove = (e: React.MouseEvent) => {
     if (!dragging) return;
     setDragX(e.clientX - dragStartX.current);
   };
-  const onPointerUp = () => {
+  const onMouseUp = () => {
     if (!dragging) return;
     setDragging(false);
     const threshold = window.innerWidth * 0.12;
@@ -176,10 +198,13 @@ export default function Library() {
         {/* Browser frame — fills remaining space */}
         <div
           className="flex-1 mx-3 sm:mx-5 mb-2 relative"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          style={{ cursor: dragging ? "grabbing" : "grab", touchAction: "pan-y" }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
         >
           <div
             className="h-full rounded-xl overflow-hidden glass-strong"
@@ -219,12 +244,18 @@ export default function Library() {
           </div>
         </div>
 
+        {/* Floating prev/next arrows on sides of frame */}
+        <button onClick={prev} className="absolute left-1 top-1/2 -translate-y-1/2 z-20 glass w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-transform">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button onClick={next} className="absolute right-1 top-1/2 -translate-y-1/2 z-20 glass w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-transform">
+          <ChevronRight className="h-5 w-5" />
+        </button>
+
         {/* Bottom nav */}
         <div className="px-4 pb-3 pt-1">
-          <div className="flex items-center justify-center gap-4">
-            <button onClick={prev} className="glass w-9 h-9 rounded-full flex items-center justify-center"><ChevronLeft className="h-4 w-4" /></button>
+          <div className="flex items-center justify-center gap-3">
             <span className="font-display font-bold text-xs text-muted"><span className="text-ink">{current + 1}</span> / {total}</span>
-            <button onClick={next} className="glass w-9 h-9 rounded-full flex items-center justify-center"><ChevronRight className="h-4 w-4" /></button>
           </div>
         </div>
       </div>
@@ -249,9 +280,10 @@ export default function Library() {
         {/* Center: browser frame */}
         <div
           className="flex-1 flex items-start justify-center pt-2 pb-4"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
           style={{ cursor: dragging ? "grabbing" : "grab" }}
         >
           <div
