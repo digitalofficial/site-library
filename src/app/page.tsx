@@ -7,7 +7,7 @@ interface Site {
   name: string;
   industry: string;
   url: string;
-  style: "V1" | "V2" | "V3";
+  style: "V1" | "V2" | "V3" | "V4";
   colors: [string, string];
   font: string;
   description: string;
@@ -32,6 +32,14 @@ const sites: Site[] = [
   { name: "Arctic Air Pros", industry: "HVAC / AC", url: "https://arctic-air-pros-v2.vercel.app", style: "V2", colors: ["#00BCD4", "#0B1426"], font: "Sora", description: "Cool tech, ice crystal hex pattern, dark navy" },
   { name: "Shutter & Light", industry: "Photography", url: "https://shutter-and-light-v2.vercel.app", style: "V2", colors: ["#C5A55A", "#000000"], font: "Cormorant Garamond", description: "Editorial gallery, masonry grid, cinematic reveals" },
   { name: "Summit Roofing Co.", industry: "Roofing", url: "https://summit-roofing-v2.vercel.app", style: "V2", colors: ["#B87333", "#1B2432"], font: "Lexend", description: "Architectural, roof-peak dividers, blueprint pattern" },
+  { name: "Petal & Vine", industry: "Flower Shop", url: "https://petal-and-vine-v3.vercel.app", style: "V3", colors: ["#FF6B9D", "#C4B5FD"], font: "Plus Jakarta Sans", description: "Glassmorphism, rose pink mesh gradients, floating glass orbs" },
+  { name: "Sugar & Bloom Bakery", industry: "Bakery", url: "https://sugar-and-bloom-bakery-v3.vercel.app", style: "V3", colors: ["#FF85A2", "#F5D5A0"], font: "Quicksand", description: "Glass cards, warm pink & cream gold, holographic shimmer" },
+  { name: "The Wax Lounge", industry: "Esthetics", url: "https://the-wax-lounge-v3.vercel.app", style: "V3", colors: ["#D4AF37", "#E8A0BF"], font: "Manrope", description: "Champagne gold glassmorphism, spinning glow borders" },
+  { name: "Drift Wellness", industry: "Med Spa", url: "https://drift-wellness-v3.vercel.app", style: "V3", colors: ["#5EEAD4", "#A78BFA"], font: "DM Sans", description: "Teal & violet glassmorphism, holographic cards, mesh bg" },
+  { name: "Canopy Tree Service", industry: "Tree Service", url: "https://canopy-tree-service-v4.vercel.app", style: "V4", colors: ["#4ADE80", "#0A120A"], font: "Space Grotesk", description: "Scroll-driven CSS, sticky hero fade, holographic mouse-tracking cards" },
+  { name: "Lucky Paws Vet", industry: "Veterinary", url: "https://lucky-paws-vet-v4.vercel.app", style: "V4", colors: ["#F59E0B", "#FB7185"], font: "Nunito", description: "Scroll-driven animations, word-by-word reveals, seamless flow" },
+  { name: "Iron & Oak Furniture", industry: "Custom Furniture", url: "https://iron-and-oak-furniture-v4.vercel.app", style: "V4", colors: ["#D97706", "#94A3B8"], font: "Playfair Display", description: "Scroll-driven, horizontal portfolio, copper/steel artisan" },
+  { name: "Midnight Auto Detail", industry: "Car Detailing", url: "https://midnight-auto-detail-v4.vercel.app", style: "V4", colors: ["#C0C0C0", "#1E3A5F"], font: "Montserrat", description: "Chrome metallic text, scroll-driven, premium true black" },
 ];
 
 function getPositionClass(offset: number): string {
@@ -47,8 +55,10 @@ function getPositionClass(offset: number): string {
 
 export default function Library() {
   const [current, setCurrent] = useState(0);
-  const [filter, setFilter] = useState<"All" | "V1" | "V2" | "V3">("All");
+  const [filter, setFilter] = useState<"All" | "V1" | "V2" | "V3" | "V4">("All");
   const touchStartX = useRef(0);
+  const wheelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelLocked = useRef(false);
 
   const filtered = filter === "All" ? sites : sites.filter(s => s.style === filter);
   const total = filtered.length;
@@ -65,8 +75,20 @@ export default function Library() {
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
     };
+    const wheelHandler = (e: WheelEvent) => {
+      e.preventDefault();
+      if (wheelLocked.current) return;
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(delta) > 15) {
+        wheelLocked.current = true;
+        delta > 0 ? next() : prev();
+        if (wheelTimeout.current) clearTimeout(wheelTimeout.current);
+        wheelTimeout.current = setTimeout(() => { wheelLocked.current = false; }, 400);
+      }
+    };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("wheel", wheelHandler, { passive: false });
+    return () => { window.removeEventListener("keydown", handler); window.removeEventListener("wheel", wheelHandler); };
   }, [next, prev]);
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
@@ -89,7 +111,7 @@ export default function Library() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {(["All", "V1", "V2", "V3"] as const).map(v => (
+          {(["All", "V1", "V2", "V3", "V4"] as const).map(v => (
             <button
               key={v}
               onClick={() => setFilter(v)}
@@ -122,19 +144,30 @@ export default function Library() {
                 {/* Color strip */}
                 <div className="h-2 w-full" style={{ background: `linear-gradient(90deg, ${s.colors[0]}, ${s.colors[1]})` }} />
 
-                {/* Preview area */}
+                {/* Preview area — iframe for active, gradient for others */}
                 <div className="flex-1 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${s.colors[0]}15, ${s.colors[1]}10)` }}>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center px-6">
-                      <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${s.colors[0]}30, ${s.colors[1]}20)`, border: `1px solid ${s.colors[0]}30` }}>
-                        <span className="font-display font-bold text-2xl" style={{ color: s.colors[0] }}>
-                          {s.name.charAt(0)}
-                        </span>
-                      </div>
-                      <p className="font-display font-bold text-2xl md:text-3xl leading-tight">{s.name}</p>
-                      <p className="text-sm text-muted mt-2">{s.industry}</p>
+                  {wrappedOffset === 0 ? (
+                    <div className="absolute inset-0">
+                      <iframe
+                        src={s.url}
+                        title={s.name}
+                        className="w-[1280px] h-[800px] origin-top-left pointer-events-none"
+                        style={{ transform: "scale(0.328)", transformOrigin: "top left" }}
+                        loading="lazy"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center px-6">
+                        <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${s.colors[0]}30, ${s.colors[1]}20)`, border: `1px solid ${s.colors[0]}30` }}>
+                          <span className="font-display font-bold text-xl" style={{ color: s.colors[0] }}>{s.name.charAt(0)}</span>
+                        </div>
+                        <p className="font-display font-bold text-lg leading-tight">{s.name}</p>
+                        <p className="text-xs text-muted mt-1">{s.industry}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Info panel */}
@@ -143,7 +176,8 @@ export default function Library() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       s.style === "V1" ? "bg-blue-500/10 text-blue-400" :
                       s.style === "V2" ? "bg-yellow-500/10 text-yellow-400" :
-                      "bg-purple-500/10 text-purple-400"
+                      s.style === "V3" ? "bg-purple-500/10 text-purple-400" :
+                      "bg-emerald-500/10 text-emerald-400"
                     }`}>{s.style}</span>
                     <span className="text-[10px] text-muted">{s.font}</span>
                   </div>
