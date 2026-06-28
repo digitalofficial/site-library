@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowUpRight, Grid3X3, List, Search, X } from "lucide-react";
+import { ArrowUpRight, Grid3X3, List, Search, X, Globe, Layout } from "lucide-react";
 
 type Style = "V1" | "V2" | "V3" | "V4" | "V5";
 type PageType = "single" | "multi";
+type TopTab = "templates" | "current";
 
 interface Site {
   name: string;
@@ -17,6 +18,35 @@ interface Site {
   pages: PageType;
   features: string[];
 }
+
+interface HostedSite {
+  name: string;
+  industry: string;
+  url: string;
+  platform: "WordPress" | "Next.js" | "Custom";
+  colors: [string, string];
+}
+
+const hostedSites: HostedSite[] = [
+  { name: "All About Drains", industry: "Drain Service", url: "https://allaboutdrainsaz.com", platform: "WordPress", colors: ["#2563EB", "#1E40AF"] },
+  { name: "All Mountain Systems", industry: "IT Systems", url: "https://allmountainsystems.com", platform: "WordPress", colors: ["#0F766E", "#134E4A"] },
+  { name: "NZ Barber", industry: "Barbershop", url: "https://app.nzbarber.com", platform: "WordPress", colors: ["#D4A017", "#1C1C1C"] },
+  { name: "Cowboy Plumbing", industry: "Plumbing", url: "https://cowboyplumbingaz.com", platform: "WordPress", colors: ["#92400E", "#451A03"] },
+  { name: "Gadget Geeks", industry: "Electronics Repair", url: "https://fix.gadgetgeeks.com", platform: "WordPress", colors: ["#39FF14", "#B026FF"] },
+  { name: "GuestQuest", industry: "Hospitality App", url: "https://guestquest.app", platform: "Custom", colors: ["#6366F1", "#4F46E5"] },
+  { name: "Happy Carousel Daycare", industry: "Daycare", url: "https://happycarouselkids.com", platform: "WordPress", colors: ["#F472B6", "#A855F7"] },
+  { name: "Hero Breakfast", industry: "Restaurant", url: "https://herobreakfast.com", platform: "WordPress", colors: ["#DC2626", "#F59E0B"] },
+  { name: "iDoRecruit", industry: "Recruiting", url: "https://idorecruit.com", platform: "WordPress", colors: ["#2563EB", "#06B6D4"] },
+  { name: "Jackrabbit Plumbing & Gas", industry: "Plumbing & Gas", url: "https://jackrabbitplumbingfw.com", platform: "WordPress", colors: ["#EA580C", "#16A34A"] },
+  { name: "Kingdom Recovery Roofing", industry: "Roofing", url: "https://kingdomrecoveryroofing.com", platform: "WordPress", colors: ["#7C3AED", "#D4A017"] },
+  { name: "Raycrete LLC", industry: "Concrete", url: "https://raycretellc.com", platform: "WordPress", colors: ["#78716C", "#44403C"] },
+  { name: "Service Official", industry: "SaaS Platform", url: "https://serviceofficial.app", platform: "Custom", colors: ["#D77E00", "#00B4D8"] },
+  { name: "Sigma Player Cards", industry: "Trading Cards", url: "https://sigmaplayercards.com", platform: "WordPress", colors: ["#EAB308", "#1C1917"] },
+  { name: "Tap Official", industry: "SaaS Platform", url: "https://tapofficial.com", platform: "Custom", colors: ["#D77E00", "#14B8A6"] },
+  { name: "The Horseshoe", industry: "Bar & Restaurant", url: "https://thehorseshoebenson.com", platform: "WordPress", colors: ["#92400E", "#78350F"] },
+  { name: "The Plumber Kings", industry: "Plumbing", url: "https://theplumberkings.com", platform: "WordPress", colors: ["#1D4ED8", "#FBBF24"] },
+  { name: "On The Spot Locksmith", industry: "Locksmith", url: "https://tucsonlocksmithnow.com", platform: "WordPress", colors: ["#DC2626", "#1C1917"] },
+];
 
 const sites: Site[] = [
   { name: "Catalina Garage", industry: "Auto Repair", url: "https://catalina-garage.vercel.app", style: "V1", colors: ["#C0392B", "#45B5AA"], font: "Bricolage Grotesque", description: "Retro halftone dots, cherry & turquoise", pages: "multi", features: ["halftone", "marquee", "scroll-reveal"] },
@@ -78,13 +108,27 @@ const styleBadge = (s: Style) =>
 const allIndustries = [...new Set(sites.map(s => s.industry))].sort();
 const allFeatures = [...new Set(sites.flatMap(s => s.features))].sort();
 
+const platformBadge = (p: string) =>
+  p === "WordPress" ? "bg-blue-500/15 text-blue-400 border-blue-500/20" :
+  p === "Next.js" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" :
+  "bg-purple-500/15 text-purple-400 border-purple-500/20";
+
 export default function Library() {
+  const [topTab, setTopTab] = useState<TopTab>("templates");
   const [styleFilter, setStyleFilter] = useState<Style | "All">("All");
   const [pageFilter, setPageFilter] = useState<PageType | "All">("All");
   const [industryFilter, setIndustryFilter] = useState("All");
   const [featureFilter, setFeatureFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [hostedSearch, setHostedSearch] = useState("");
+
+  const filteredHosted = useMemo(() => {
+    return hostedSites.filter(s => {
+      if (hostedSearch && !s.name.toLowerCase().includes(hostedSearch.toLowerCase()) && !s.industry.toLowerCase().includes(hostedSearch.toLowerCase())) return false;
+      return true;
+    });
+  }, [hostedSearch]);
 
   const filtered = useMemo(() => {
     return sites.filter(s => {
@@ -108,7 +152,24 @@ export default function Library() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="font-bold text-lg"><span className="text-[#D77E00]">Digital Official</span> <span className="text-[#888] font-normal text-sm">Site Library</span></h1>
-              <p className="text-[10px] text-[#888]">{filtered.length} of {sites.length} sites</p>
+              <div className="flex items-center gap-1 mt-1.5">
+                <button
+                  onClick={() => setTopTab("templates")}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${topTab === "templates" ? "bg-[#D77E00]/15 text-[#D77E00] border border-[#D77E00]/25" : "text-[#888] hover:text-white border border-transparent"}`}
+                >
+                  <Layout className="h-3 w-3" />
+                  Templates
+                  <span className={`text-[9px] ml-0.5 ${topTab === "templates" ? "text-[#D77E00]/60" : "text-[#555]"}`}>{sites.length}</span>
+                </button>
+                <button
+                  onClick={() => setTopTab("current")}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${topTab === "current" ? "bg-[#D77E00]/15 text-[#D77E00] border border-[#D77E00]/25" : "text-[#888] hover:text-white border border-transparent"}`}
+                >
+                  <Globe className="h-3 w-3" />
+                  Current Sites
+                  <span className={`text-[9px] ml-0.5 ${topTab === "current" ? "text-[#D77E00]/60" : "text-[#555]"}`}>{hostedSites.length}</span>
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {/* Search */}
@@ -117,11 +178,11 @@ export default function Library() {
                 <input
                   type="text"
                   placeholder="Search..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  value={topTab === "templates" ? search : hostedSearch}
+                  onChange={e => topTab === "templates" ? setSearch(e.target.value) : setHostedSearch(e.target.value)}
                   className="pl-8 pr-7 py-1.5 rounded-lg bg-white/[.04] border border-white/[.08] text-xs text-white w-36 sm:w-48 focus:outline-none focus:border-[#D77E00]/40"
                 />
-                {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="h-3 w-3 text-[#888]" /></button>}
+                {(topTab === "templates" ? search : hostedSearch) && <button onClick={() => topTab === "templates" ? setSearch("") : setHostedSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="h-3 w-3 text-[#888]" /></button>}
               </div>
               {/* View toggle */}
               <div className="flex items-center gap-0.5 bg-white/[.04] border border-white/[.08] rounded-lg p-0.5">
@@ -131,7 +192,8 @@ export default function Library() {
             </div>
           </div>
 
-          {/* Filter row */}
+          {/* Filter row — templates only */}
+          {topTab === "templates" && (
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             {/* Style */}
             <div className="flex items-center gap-0.5">
@@ -165,11 +227,79 @@ export default function Library() {
               </button>
             )}
           </div>
+          )}
+
+          {/* Filter row — current sites */}
+          {topTab === "current" && (
+          <div className="flex items-center gap-2 text-[11px]">
+            <p className="text-[#888]">{filteredHosted.length} of {hostedSites.length} live sites</p>
+          </div>
+          )}
         </div>
       </header>
 
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 py-6">
+
+        {/* ═══ CURRENT SITES TAB ═══ */}
+        {topTab === "current" && (
+          <>
+            {view === "grid" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredHosted.map(site => (
+                  <a key={site.name} href={site.url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl overflow-hidden border border-white/[.06] bg-[#111116] hover:border-white/[.12] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-[#08080C]">
+                      <iframe src={site.url} title={site.name} className="pointer-events-none" loading="lazy" tabIndex={-1} style={{ width: 1280, height: 800, transform: "scale(0.25)", transformOrigin: "top left", position: "absolute", top: 0, left: 0 }} />
+                      <div className="absolute top-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${site.colors[0]}, ${site.colors[1]})` }} />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-semibold flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">Visit <ArrowUpRight className="h-3 w-3" /></span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${platformBadge(site.platform)}`}>{site.platform}</span>
+                      </div>
+                      <p className="text-[11px] text-[#888] leading-relaxed">{site.industry}</p>
+                      <p className="text-[10px] text-[#555] mt-1 truncate">{site.url.replace("https://", "")}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredHosted.map(site => (
+                  <a key={site.name} href={site.url} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-4 p-3 rounded-xl border border-white/[.06] bg-[#111116] hover:border-white/[.12] transition-all">
+                    <div className="w-2 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(to bottom, ${site.colors[0]}, ${site.colors[1]})` }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${platformBadge(site.platform)}`}>{site.platform}</span>
+                      </div>
+                      <p className="text-[11px] text-[#888] truncate">{site.industry} · {site.url.replace("https://", "")}</p>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-[#888] group-hover:text-[#D77E00] flex-shrink-0 transition-colors" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {filteredHosted.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-[#888] text-sm">No sites match your search.</p>
+                <button onClick={() => setHostedSearch("")} className="mt-3 text-[#D77E00] text-sm hover:text-white">Clear search</button>
+              </div>
+            )}
+
+            <div className="text-center py-10 text-xs text-[#444]">
+              <p>{hostedSites.length} live sites · {hostedSites.filter(s => s.platform === "WordPress").length} WordPress · {hostedSites.filter(s => s.platform === "Custom").length} Custom</p>
+              <p className="mt-1">Hosted by <span className="text-[#D77E00]/60">Digital Official</span></p>
+            </div>
+          </>
+        )}
+
+        {/* ═══ TEMPLATES TAB ═══ */}
+        {topTab === "templates" && (<>
         {view === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(site => (
@@ -229,9 +359,10 @@ export default function Library() {
 
         {/* Footer */}
         <div className="text-center py-10 text-xs text-[#444]">
-          <p>{sites.length} sites · 5 style generations · {new Set(sites.map(s => s.font)).size} fonts · {allIndustries.length} industries</p>
+          <p>{sites.length} templates · 5 style generations · {new Set(sites.map(s => s.font)).size} fonts · {allIndustries.length} industries</p>
           <p className="mt-1">Built by <span className="text-[#D77E00]/60">Digital Official</span></p>
         </div>
+        </>)}
       </main>
     </div>
   );
