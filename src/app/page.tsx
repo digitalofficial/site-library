@@ -152,22 +152,22 @@ export default function Library() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="font-bold text-lg"><span className="text-[#D77E00]">Digital Official</span> <span className="text-[#888] font-normal text-sm">Site Library</span></h1>
-              <div className="flex items-center gap-1 mt-1.5">
+              <div className="flex items-center gap-2 mt-2.5">
                 <button
                   onClick={() => setTopTab("templates")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${topTab === "templates" ? "bg-[#D77E00]/15 text-[#D77E00] border border-[#D77E00]/25" : "text-[#888] hover:text-white border border-transparent"}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${topTab === "templates" ? "bg-[#D77E00] text-white shadow-lg shadow-[#D77E00]/20" : "bg-white/[.06] text-[#888] hover:text-white hover:bg-white/[.1] border border-white/[.06]"}`}
                 >
-                  <Layout className="h-3 w-3" />
+                  <Layout className="h-4 w-4" />
                   Templates
-                  <span className={`text-[9px] ml-0.5 ${topTab === "templates" ? "text-[#D77E00]/60" : "text-[#555]"}`}>{sites.length}</span>
+                  <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${topTab === "templates" ? "bg-white/20 text-white" : "bg-white/[.06] text-[#666]"}`}>{sites.length}</span>
                 </button>
                 <button
                   onClick={() => setTopTab("current")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${topTab === "current" ? "bg-[#D77E00]/15 text-[#D77E00] border border-[#D77E00]/25" : "text-[#888] hover:text-white border border-transparent"}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${topTab === "current" ? "bg-[#D77E00] text-white shadow-lg shadow-[#D77E00]/20" : "bg-white/[.06] text-[#888] hover:text-white hover:bg-white/[.1] border border-white/[.06]"}`}
                 >
-                  <Globe className="h-3 w-3" />
+                  <Globe className="h-4 w-4" />
                   Current Sites
-                  <span className={`text-[9px] ml-0.5 ${topTab === "current" ? "text-[#D77E00]/60" : "text-[#555]"}`}>{hostedSites.length}</span>
+                  <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${topTab === "current" ? "bg-white/20 text-white" : "bg-white/[.06] text-[#666]"}`}>{hostedSites.length}</span>
                 </button>
               </div>
             </div>
