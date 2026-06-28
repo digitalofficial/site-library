@@ -97,6 +97,7 @@ const sites: Site[] = [
   { name: "Bayou Bites", industry: "Cajun Food Truck", url: "https://bayou-bites-v5.vercel.app", style: "V5", colors: ["#B91C1C", "#D4A43C"], font: "Archivo Black", description: "Cajun red/gold, spice level indicators", pages: "single", features: ["framer-motion", "menu-cards", "weekly-schedule"] },
   { name: "Mac-O-Roni", industry: "Mac & Cheese Truck", url: "https://mac-o-roni-v5.vercel.app", style: "V5", colors: ["#FCD34D", "#F97316"], font: "Fredoka", description: "Fun yellow/orange, toppings bar", pages: "single", features: ["framer-motion", "playful-hover", "menu-cards", "light-theme"] },
   { name: "Boil Society Co.", industry: "Seafood Boils", url: "https://boilsocietyco.com", style: "V5", colors: ["#C0392B", "#F7EDD7"], font: "Anton", description: "Cajun warm cream, bold type, delivery menu", pages: "single", features: ["framer-motion", "menu-cards", "real-photos"] },
+  { name: "Tucson Cleaning Pros", industry: "Cleaning Service", url: "https://tucson-cleaning-pros.vercel.app", style: "V1", colors: ["#111111", "#FFFFFF"], font: "Outfit", description: "Ultra-clean minimal, bubbles, before/after", pages: "multi", features: ["scroll-reveal", "before-after", "marquee"] },
 ];
 
 const styleBadge = (s: Style) =>
