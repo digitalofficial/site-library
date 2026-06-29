@@ -150,31 +150,11 @@ export default function Library() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#08080C]/80 backdrop-blur-xl border-b border-white/[.06]">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="font-bold text-lg"><span className="text-[#D77E00]">Digital Official</span> <span className="text-[#888] font-normal text-sm">Site Library</span></h1>
-              <div className="flex items-center gap-2 mt-2.5">
-                <button
-                  onClick={() => setTopTab("templates")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${topTab === "templates" ? "bg-[#D77E00] text-white shadow-lg shadow-[#D77E00]/20" : "bg-white/[.06] text-[#888] hover:text-white hover:bg-white/[.1] border border-white/[.06]"}`}
-                >
-                  <Layout className="h-4 w-4" />
-                  Templates
-                  <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${topTab === "templates" ? "bg-white/20 text-white" : "bg-white/[.06] text-[#666]"}`}>{sites.length}</span>
-                </button>
-                <button
-                  onClick={() => setTopTab("current")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${topTab === "current" ? "bg-[#D77E00] text-white shadow-lg shadow-[#D77E00]/20" : "bg-white/[.06] text-[#888] hover:text-white hover:bg-white/[.1] border border-white/[.06]"}`}
-                >
-                  <Globe className="h-4 w-4" />
-                  Current Sites
-                  <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${topTab === "current" ? "bg-white/20 text-white" : "bg-white/[.06] text-[#666]"}`}>{hostedSites.length}</span>
-                </button>
-              </div>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
+          {/* Row 1: Title + search/view */}
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="font-bold text-base sm:text-lg whitespace-nowrap"><span className="text-[#D77E00]">Digital Official</span> <span className="text-[#888] font-normal text-xs sm:text-sm">Site Library</span></h1>
             <div className="flex items-center gap-2">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#888]" />
                 <input
@@ -182,11 +162,10 @@ export default function Library() {
                   placeholder="Search..."
                   value={topTab === "templates" ? search : hostedSearch}
                   onChange={e => topTab === "templates" ? setSearch(e.target.value) : setHostedSearch(e.target.value)}
-                  className="pl-8 pr-7 py-1.5 rounded-lg bg-white/[.04] border border-white/[.08] text-xs text-white w-36 sm:w-48 focus:outline-none focus:border-[#D77E00]/40"
+                  className="pl-8 pr-7 py-1.5 rounded-lg bg-white/[.04] border border-white/[.08] text-xs text-white w-28 sm:w-48 focus:outline-none focus:border-[#D77E00]/40"
                 />
                 {(topTab === "templates" ? search : hostedSearch) && <button onClick={() => topTab === "templates" ? setSearch("") : setHostedSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="h-3 w-3 text-[#888]" /></button>}
               </div>
-              {/* View toggle */}
               <div className="flex items-center gap-0.5 bg-white/[.04] border border-white/[.08] rounded-lg p-0.5">
                 <button onClick={() => setView("grid")} className={`p-1.5 rounded ${view === "grid" ? "bg-white/10 text-[#D77E00]" : "text-[#888]"}`}><Grid3X3 className="h-3.5 w-3.5" /></button>
                 <button onClick={() => setView("list")} className={`p-1.5 rounded ${view === "list" ? "bg-white/10 text-[#D77E00]" : "text-[#888]"}`}><List className="h-3.5 w-3.5" /></button>
@@ -194,44 +173,58 @@ export default function Library() {
             </div>
           </div>
 
-          {/* Filter row — templates only */}
+          {/* Row 2: Tabs */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTopTab("templates")}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${topTab === "templates" ? "bg-[#D77E00] text-white shadow-lg shadow-[#D77E00]/20" : "bg-white/[.06] text-[#888] hover:text-white hover:bg-white/[.1] border border-white/[.06]"}`}
+            >
+              <Layout className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Templates
+              <span className={`text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${topTab === "templates" ? "bg-white/20 text-white" : "bg-white/[.06] text-[#666]"}`}>{sites.length}</span>
+            </button>
+            <button
+              onClick={() => setTopTab("current")}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${topTab === "current" ? "bg-[#D77E00] text-white shadow-lg shadow-[#D77E00]/20" : "bg-white/[.06] text-[#888] hover:text-white hover:bg-white/[.1] border border-white/[.06]"}`}
+            >
+              <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Current Sites
+              <span className={`text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${topTab === "current" ? "bg-white/20 text-white" : "bg-white/[.06] text-[#666]"}`}>{hostedSites.length}</span>
+            </button>
+          </div>
+
+          {/* Row 3: Filters */}
           {topTab === "templates" && (
-          <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            {/* Style */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] overflow-x-auto pb-1 -mb-1">
             <div className="flex items-center gap-0.5">
               {(["All", "V1", "V2", "V3", "V4", "V5"] as const).map(v => (
-                <button key={v} onClick={() => setStyleFilter(v)} className={`px-2 py-1 rounded-full font-semibold transition-all ${styleFilter === v ? "bg-white/[.08] text-[#D77E00]" : "text-[#888] hover:text-white"}`}>
+                <button key={v} onClick={() => setStyleFilter(v)} className={`px-2 py-1 rounded-full font-semibold transition-all whitespace-nowrap ${styleFilter === v ? "bg-white/[.08] text-[#D77E00]" : "text-[#888] hover:text-white"}`}>
                   {v}{v !== "All" && <span className="text-[#666] ml-0.5">{counts[v as Style]}</span>}
                 </button>
               ))}
             </div>
-            <span className="text-[#333]">|</span>
-            {/* Page type */}
-            <select value={pageFilter} onChange={e => setPageFilter(e.target.value as PageType | "All")} className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[11px] text-[#ccc]">
+            <span className="text-[#333] hidden sm:inline">|</span>
+            <select value={pageFilter} onChange={e => setPageFilter(e.target.value as PageType | "All")} className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[10px] sm:text-[11px] text-[#ccc]">
               <option value="All">All Pages</option>
               <option value="single">Single Page</option>
               <option value="multi">Multi Page</option>
             </select>
-            {/* Industry */}
-            <select value={industryFilter} onChange={e => setIndustryFilter(e.target.value)} className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[11px] text-[#ccc]">
+            <select value={industryFilter} onChange={e => setIndustryFilter(e.target.value)} className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[10px] sm:text-[11px] text-[#ccc]">
               <option value="All">All Industries</option>
               {allIndustries.map(i => <option key={i} value={i}>{i}</option>)}
             </select>
-            {/* Features */}
-            <select value={featureFilter} onChange={e => setFeatureFilter(e.target.value)} className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[11px] text-[#ccc]">
+            <select value={featureFilter} onChange={e => setFeatureFilter(e.target.value)} className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[10px] sm:text-[11px] text-[#ccc] hidden sm:block">
               <option value="All">All Features</option>
               {allFeatures.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
-            {/* Reset */}
             {(styleFilter !== "All" || pageFilter !== "All" || industryFilter !== "All" || featureFilter !== "All" || search) && (
-              <button onClick={() => { setStyleFilter("All"); setPageFilter("All"); setIndustryFilter("All"); setFeatureFilter("All"); setSearch(""); }} className="text-[#D77E00] hover:text-white px-2 py-1">
-                Clear all
+              <button onClick={() => { setStyleFilter("All"); setPageFilter("All"); setIndustryFilter("All"); setFeatureFilter("All"); setSearch(""); }} className="text-[#D77E00] hover:text-white px-2 py-1 whitespace-nowrap">
+                Clear
               </button>
             )}
           </div>
           )}
 
-          {/* Filter row — current sites */}
           {topTab === "current" && (
           <div className="flex items-center gap-2 text-[11px]">
             <p className="text-[#888]">{filteredHosted.length} of {hostedSites.length} live sites</p>
