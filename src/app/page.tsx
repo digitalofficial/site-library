@@ -162,7 +162,7 @@ export default function Library() {
                   placeholder="Search..."
                   value={topTab === "templates" ? search : hostedSearch}
                   onChange={e => topTab === "templates" ? setSearch(e.target.value) : setHostedSearch(e.target.value)}
-                  className="pl-8 pr-7 py-1.5 rounded-lg bg-white/[.04] border border-white/[.08] text-xs text-white w-28 sm:w-48 focus:outline-none focus:border-[#D77E00]/40"
+                  className="pl-8 pr-7 py-1.5 rounded-lg bg-white/[.04] border border-white/[.08] text-[16px] sm:text-xs text-white w-28 sm:w-48 focus:outline-none focus:border-[#D77E00]/40"
                 />
                 {(topTab === "templates" ? search : hostedSearch) && <button onClick={() => topTab === "templates" ? setSearch("") : setHostedSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="h-3 w-3 text-[#888]" /></button>}
               </div>
