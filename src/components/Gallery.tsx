@@ -13,7 +13,8 @@ const styleBadge = (s: Style) =>
   s === "V2" ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/20" :
   s === "V3" ? "bg-purple-500/15 text-purple-300 border-purple-500/20" :
   s === "V4" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/20" :
-  "bg-rose-500/15 text-rose-300 border-rose-500/20";
+  s === "V5" ? "bg-rose-500/15 text-rose-300 border-rose-500/20" :
+  "bg-orange-500/15 text-orange-300 border-orange-500/20";
 
 const platformBadge = (p: Platform) =>
   p === "Vite" ? "bg-purple-500/15 text-purple-300 border-purple-500/20" :
@@ -144,7 +145,7 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
   const filteredHosted = useMemo(() => hostedSites.filter(s => matches(q, s.name, s.industry)), [hostedSites, q]);
   const filteredDo = useMemo(() => doProjects.filter(s => matches(q, s.name, s.industry)), [doProjects, q]);
 
-  const counts = { V1: sites.filter(s => s.style === "V1").length, V2: sites.filter(s => s.style === "V2").length, V3: sites.filter(s => s.style === "V3").length, V4: sites.filter(s => s.style === "V4").length, V5: sites.filter(s => s.style === "V5").length };
+  const counts = Object.fromEntries((["V1","V2","V3","V4","V5","V6"] as const).map(v => [v, sites.filter(s => s.style === v).length])) as Record<Style, number>;
 
   return (
     <div className="min-h-[100dvh] bg-[#08080C] text-[#F0F0F2]">
@@ -195,7 +196,7 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
           {topTab === "library" && (
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] pb-1 -mb-1">
               <div className="flex items-center gap-0.5">
-                {(["All", "V1", "V2", "V3", "V4", "V5"] as const).map(v => (
+                {(["All", "V1", "V2", "V3", "V4", "V5", "V6"] as const).map(v => (
                   <button key={v} onClick={() => setStyleFilter(v)} className={`px-2 py-1 rounded-full font-semibold transition-all whitespace-nowrap ${styleFilter === v ? "bg-white/[.08] text-[#D77E00]" : "text-[#888] hover:text-white"}`}>
                     {v}{v !== "All" && <span className="text-[#9a9aa3] ml-0.5">{counts[v as Style]}</span>}
                   </button>
@@ -297,7 +298,7 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
             {filtered.length === 0 && <Empty label="filters" onClear={clearFilters} />}
 
             <div className="text-center py-10 text-xs text-[#8a8a92]">
-              <p>{sites.length} templates · 5 style generations · {new Set(sites.map(s => s.font)).size} fonts · {allIndustries.length} industries</p>
+              <p>{sites.length} templates · 6 style generations · {new Set(sites.map(s => s.font)).size} fonts · {allIndustries.length} industries</p>
               <p className="mt-1">Built by <span className="text-[#D77E00]">Digital Official</span></p>
             </div>
           </>

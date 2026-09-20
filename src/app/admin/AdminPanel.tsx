@@ -27,7 +27,7 @@ function Fields({ tab, e }: { tab: Tab; e?: Entry }) {
       {tab === "library" ? (
         <>
           <label className={label}>Style generation
-            <select name="style" defaultValue={e?.style ?? "V5"} className={input}>{["V1","V2","V3","V4","V5"].map(v => <option key={v}>{v}</option>)}</select>
+            <select name="style" defaultValue={e?.style ?? "V5"} className={input}>{["V1","V2","V3","V4","V5","V6"].map(v => <option key={v}>{v}</option>)}</select>
           </label>
           <label className={label}>Pages
             <select name="pages" defaultValue={e?.pages ?? "single"} className={input}><option value="single">Single page</option><option value="multi">Multi page</option></select>

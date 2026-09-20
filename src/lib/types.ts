@@ -1,5 +1,5 @@
 export type Tab = "library" | "current" | "do";
-export type Style = "V1" | "V2" | "V3" | "V4" | "V5";
+export type Style = "V1" | "V2" | "V3" | "V4" | "V5" | "V6"; // V6 = 2026 house stack (Vite/Next + GSAP + Three)
 export type PageType = "single" | "multi";
 export type Platform = "Vite" | "Next.js" | "WordPress";
 
