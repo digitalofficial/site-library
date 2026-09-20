@@ -6,8 +6,8 @@ const display = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-displa
 const body = Inter({ subsets: ["latin"], variable: "--font-body", weight: ["400", "500", "600"] });
 
 export const metadata: Metadata = {
-  title: "Site Library | Digital Official",
-  description: "Browse our portfolio of website designs. Built by Digital Official — Tucson's full-service digital marketing agency.",
+  title: "Portfolio | Digital Official",
+  description: "Our template library, live client sites, and the companies we started — all built by Digital Official. Built by Digital Official — Tucson's full-service digital marketing agency.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
