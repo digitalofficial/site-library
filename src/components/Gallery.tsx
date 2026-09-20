@@ -180,7 +180,7 @@ function Empty({ onClear, label }: { onClear: () => void; label: string }) {
   );
 }
 
-export default function Gallery({ entries, videos, featuredVideo }: { entries: Entry[]; videos: Video[]; featuredVideo: string | null }) {
+export default function Gallery({ entries, videos, featuredVideo, heroPoster }: { entries: Entry[]; videos: Video[]; featuredVideo: string | null; heroPoster?: string }) {
   const sites = useMemo(() => entries.filter(e => e.tab === "library"), [entries]);
   const hostedSites = useMemo(() => entries.filter(e => e.tab === "current"), [entries]);
   const doProjects = useMemo(() => entries.filter(e => e.tab === "do"), [entries]);
@@ -331,7 +331,7 @@ export default function Gallery({ entries, videos, featuredVideo }: { entries: E
           </>
         )}
 
-        {topTab === "videos" && <Videos videos={videos} featuredId={featuredVideo} query={q} />}
+        {topTab === "videos" && <Videos videos={videos} featuredId={featuredVideo} heroPoster={heroPoster} query={q} />}
 
         {topTab === "library" && (
           <>

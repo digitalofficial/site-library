@@ -113,3 +113,15 @@ export async function loadVideos(): Promise<{ videos: Video[]; settings: VideoSe
     .sort((a, b) => (b.published ? +new Date(b.published) : 0) - (a.published ? +new Date(a.published) : 0));
   return { videos, settings, source };
 }
+
+/** Largest poster YouTube actually has for this video (maxres → sd → hq), checked server-side so the browser never 404s. */
+export async function bestPoster(id: string): Promise<string> {
+  for (const size of ["maxresdefault", "sddefault"]) {
+    try {
+      const r = await fetch(`https://i.ytimg.com/vi/${id}/${size}.jpg`, { method: "HEAD", next: { revalidate: 86400 } });
+      if (r.ok) return `https://i.ytimg.com/vi/${id}/${size}.jpg`;
+    } catch {}
+  }
+  return thumbOf(id);
+}
+

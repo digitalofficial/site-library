@@ -20,14 +20,11 @@ function Player({ id, title }: { id: string; title: string }) {
   );
 }
 
-function Thumb({ v, big = false }: { v: Video; big?: boolean }) {
-  // maxresdefault is 1280px but doesn't exist for every upload; YouTube answers
-  // those with a 120px placeholder, so fall back to hqdefault when it's tiny.
-  const [src, setSrc] = useState(big ? `https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg` : thumbOf(v.id));
+function Thumb({ v, big = false, poster }: { v: Video; big?: boolean; poster?: string }) {
   return (
     <div className="relative aspect-video overflow-hidden bg-[#08080C]">
-      {/* hqdefault is 4:3 with letterbox bars; cover-cropping to 16:9 removes them */}
-      <img src={src} alt="" loading={big ? "eager" : "lazy"} decoding="async" onLoad={e => { if (e.currentTarget.naturalWidth < 300) setSrc(thumbOf(v.id)); }} onError={() => setSrc(thumbOf(v.id))} className="absolute inset-0 w-full h-full object-cover" />
+      {/* hqdefault is 4:3 with letterbox bars; cover-cropping to 16:9 removes them. The hero gets a server-resolved larger poster. */}
+      <img src={poster ?? thumbOf(v.id)} alt="" loading={big ? "eager" : "lazy"} decoding="async" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
       <div className="absolute inset-0 flex items-center justify-center">
         <span className={`flex items-center justify-center rounded-full bg-[#D77E00] text-[#08080C] shadow-lg shadow-black/40 group-hover:scale-110 transition-transform ${big ? "h-16 w-16 sm:h-20 sm:w-20" : "h-11 w-11"}`}>
@@ -38,7 +35,7 @@ function Thumb({ v, big = false }: { v: Video; big?: boolean }) {
   );
 }
 
-export default function Videos({ videos, featuredId, query }: { videos: Video[]; featuredId: string | null; query: string }) {
+export default function Videos({ videos, featuredId, heroPoster, query }: { videos: Video[]; featuredId: string | null; heroPoster?: string; query: string }) {
   const [open, setOpen] = useState<Video | null>(null);
   const [heroPlaying, setHeroPlaying] = useState(false);
 
@@ -63,7 +60,7 @@ export default function Videos({ videos, featuredId, query }: { videos: Video[];
             <div className="relative aspect-video">
               {heroPlaying ? <Player id={hero.id} title={hero.title} /> : (
                 <button onClick={() => setHeroPlaying(true)} aria-label={`Play ${hero.title}`} className="absolute inset-0 w-full h-full text-left">
-                  <Thumb v={hero} big />
+                  <Thumb v={hero} big poster={heroPoster} />
                 </button>
               )}
             </div>
