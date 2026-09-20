@@ -77,12 +77,12 @@ export default function Videos({ videos, featuredId, heroPoster, query }: { vide
       )}
 
       {rest.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {rest.map(v => (
             <button key={v.id} onClick={() => setOpen(v)} className="group text-left rounded-2xl overflow-hidden border border-white/[.06] bg-[#111116] hover:border-white/[.12] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20">
               <Thumb v={v} />
-              <div className="p-4">
-                <h3 className="font-bold text-sm leading-snug line-clamp-2 group-hover:text-[#D77E00] transition-colors">{v.title}</h3>
+              <div className="p-3 sm:p-4">
+                <h3 className="font-bold text-[13px] sm:text-sm leading-snug line-clamp-2 group-hover:text-[#D77E00] transition-colors">{v.title}</h3>
                 <p className="text-[11px] text-[#9a9aa3] mt-1">{[fmtDate(v.published), fmtViews(v.views)].filter(Boolean).join(" · ") || "YouTube"}</p>
               </div>
             </button>
