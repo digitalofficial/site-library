@@ -7,6 +7,7 @@ import { captureThumb } from "@/lib/capture";
 import { loadEntries, saveEntries } from "@/lib/store";
 import { del } from "@vercel/blob";
 import { slugOf, TABS, KINDS, type Entry, type Tab, type Kind } from "@/lib/types";
+import { loadVideoSettings, saveVideoSettings, oembed, videoIdFrom, type VideoSettings } from "@/lib/videos";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -137,4 +138,50 @@ export async function recaptureEntry(id: string): Promise<ActionResult> {
     await dropThumb(e.thumb);
     return entries.map(x => x.id === id ? { ...x, thumb } : x);
   });
+}
+
+// ───────────── Videos ─────────────
+
+async function mutateVideos(fn: (s: VideoSettings) => VideoSettings | Promise<VideoSettings>): Promise<ActionResult> {
+  guard();
+  try {
+    const next = await fn(await loadVideoSettings());
+    await saveVideoSettings(next);
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function featureVideo(id: string | null) {
+  return mutateVideos(s => ({ ...s, featured: id }));
+}
+
+export async function toggleHiddenVideo(id: string) {
+  return mutateVideos(s => ({ ...s, hidden: s.hidden.includes(id) ? s.hidden.filter(h => h !== id) : [...s.hidden, id] }));
+}
+
+export async function renameVideo(_: unknown, form: FormData): Promise<ActionResult> {
+  const id = String(form.get("id")), title = String(form.get("title") ?? "").trim();
+  return mutateVideos(s => {
+    const titles = { ...s.titles };
+    if (title) titles[id] = title; else delete titles[id]; // empty = back to YouTube's title
+    return { ...s, titles };
+  });
+}
+
+export async function addVideo(_: unknown, form: FormData): Promise<ActionResult> {
+  const id = videoIdFrom(String(form.get("url") ?? ""));
+  if (!id) return { ok: false, error: "Paste a YouTube link (watch, youtu.be or shorts) or an 11-character video id." };
+  const res = await mutateVideos(async s => {
+    if (s.extra.some(v => v.id === id)) throw new Error("That video is already in the list.");
+    const v = await oembed(id);
+    return { ...s, extra: [...s.extra, { ...v, manual: true }] };
+  });
+  return res.ok ? { ok: true, message: "Added. If it's on our channel already it just shows once." } : res;
+}
+
+export async function removeVideo(id: string) {
+  return mutateVideos(s => ({ ...s, extra: s.extra.filter(v => v.id !== id), hidden: s.hidden.filter(h => h !== id), featured: s.featured === id ? null : s.featured }));
 }

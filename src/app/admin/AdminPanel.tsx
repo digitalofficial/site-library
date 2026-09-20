@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { ArrowUp, ArrowDown, Camera, Pencil, Trash2, ExternalLink, LogOut, Plus, X } from "lucide-react";
 import { TAB_LABEL, TABS, KINDS, KIND_LABEL, KIND_HINT, kindOf, type Entry, type Tab } from "@/lib/types";
+import type { Video, VideoSettings } from "@/lib/videos";
+import VideosAdmin from "./VideosAdmin";
 import { addEntry, deleteEntry, logout, moveEntry, nudgeEntry, recaptureEntry, updateEntry, type ActionResult } from "./actions";
 
 const input = "w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/[.1] text-[16px] sm:text-sm text-white focus:outline-none focus:border-[#D77E00]/60";
@@ -138,10 +140,11 @@ function AddForm({ tab, onNotice }: { tab: Tab; onNotice: (r: ActionResult) => v
   );
 }
 
-export default function AdminPanel({ entries, source }: { entries: Entry[]; source: "blob" | "seed" }) {
-  const [tab, setTab] = useState<Tab>("library");
+export default function AdminPanel({ entries, source, videos, videoSettings, videoSource }: { entries: Entry[]; source: "blob" | "seed"; videos: Video[]; videoSettings: VideoSettings; videoSource: "live" | "partial" | "none" }) {
+  const [tab, setTab] = useState<Tab | "videos">("library");
   const [notice, setNotice] = useState<ActionResult | null>(null);
   const rows = entries.filter(e => e.tab === tab);
+  const addTab: Tab = tab === "videos" ? "library" : tab;
 
   return (
     <main className="min-h-[100dvh] bg-[#08080C] text-[#F0F0F2]">
@@ -155,9 +158,9 @@ export default function AdminPanel({ entries, source }: { entries: Entry[]; sour
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {TABS.map(t => (
+            {[...TABS, "videos" as const].map(t => (
               <button key={t} onClick={() => setTab(t)} aria-pressed={tab === t} className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${tab === t ? "bg-[#D77E00] text-[#08080C]" : "bg-white/[.06] text-[#9a9aa3] hover:text-white border border-white/[.06]"}`}>
-                {TAB_LABEL[t]} <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-md ${tab === t ? "bg-black/20" : "bg-white/[.06]"}`}>{entries.filter(e => e.tab === t).length}</span>
+                {t === "videos" ? "Videos" : TAB_LABEL[t]} <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-md ${tab === t ? "bg-black/20" : "bg-white/[.06]"}`}>{t === "videos" ? videos.length : entries.filter(e => e.tab === t).length}</span>
               </button>
             ))}
           </div>
@@ -167,11 +170,13 @@ export default function AdminPanel({ entries, source }: { entries: Entry[]; sour
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <AddForm tab={tab} onNotice={setNotice} />
+        {tab === "videos" ? <VideosAdmin videos={videos} settings={videoSettings} source={videoSource} onNotice={setNotice} /> : (<>
+        <AddForm tab={addTab} onNotice={setNotice} />
         <ul className="space-y-2">
           {rows.map((e, i) => <Row key={e.id} e={e} first={i === 0} last={i === rows.length - 1} onNotice={setNotice} />)}
         </ul>
-        {rows.length === 0 && <p className="text-sm text-[#9a9aa3] text-center py-10">Nothing in {TAB_LABEL[tab]} yet.</p>}
+        {rows.length === 0 && <p className="text-sm text-[#9a9aa3] text-center py-10">Nothing in {TAB_LABEL[addTab]} yet.</p>}
+        </>)}
         <p className="text-[11px] text-[#8a8a92] text-center pb-6">Order here is the order on the site. Changes are live immediately.</p>
       </div>
     </main>

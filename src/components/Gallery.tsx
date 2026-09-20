@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowUpRight, Grid3X3, List, Search, X, Globe, Layout, Rocket } from "lucide-react";
+import { ArrowUpRight, Grid3X3, List, Search, X, Globe, Layout, Rocket, Clapperboard, Youtube } from "lucide-react";
+import Videos from "./Videos";
+import { CHANNEL_URL, type Video } from "@/lib/videos";
 import { KINDS, KIND_LABEL, KIND_HINT, kindOf, type Entry, type Style, type Platform, type Kind } from "@/lib/types";
 
-type TopTab = "library" | "current" | "do";
+type TopTab = "library" | "current" | "do" | "videos";
 type View = "grid" | "list";
 type HostedSite = Entry;
 
@@ -178,7 +180,7 @@ function Empty({ onClear, label }: { onClear: () => void; label: string }) {
   );
 }
 
-export default function Gallery({ entries }: { entries: Entry[] }) {
+export default function Gallery({ entries, videos, featuredVideo }: { entries: Entry[]; videos: Video[]; featuredVideo: string | null }) {
   const sites = useMemo(() => entries.filter(e => e.tab === "library"), [entries]);
   const hostedSites = useMemo(() => entries.filter(e => e.tab === "current"), [entries]);
   const doProjects = useMemo(() => entries.filter(e => e.tab === "do"), [entries]);
@@ -188,10 +190,11 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
     { id: "library", label: "Library", Icon: Layout, count: sites.length },
     { id: "current", label: "Current", Icon: Globe, count: hostedSites.length },
     { id: "do", label: "DO Projects", Icon: Rocket, count: doProjects.length },
+    { id: "videos", label: "Videos", Icon: Clapperboard, count: videos.length },
   ];
   const [topTab, setTopTab] = useState<TopTab>("library");
   const [view, setView] = useState<View>("grid");
-  const [search, setSearch] = useState<Record<TopTab, string>>({ library: "", current: "", do: "" });
+  const [search, setSearch] = useState<Record<TopTab, string>>({ library: "", current: "", do: "", videos: "" });
   const [styleFilter, setStyleFilter] = useState<Style | "All">("All");
   const [kindFilter, setKindFilter] = useState<Kind | "All">("All");
   const [industryFilter, setIndustryFilter] = useState("All");
@@ -237,10 +240,10 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
                 />
                 {q && <button onClick={() => setQ("")} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2"><X className="h-3 w-3 text-[#888]" /></button>}
               </div>
-              <div className="flex items-center gap-0.5 bg-white/[.04] border border-white/[.08] rounded-lg p-0.5">
+              {topTab !== "videos" && <div className="flex items-center gap-0.5 bg-white/[.04] border border-white/[.08] rounded-lg p-0.5">
                 <button onClick={() => setView("grid")} aria-label="Grid view" aria-pressed={view === "grid"} className={`p-1.5 rounded ${view === "grid" ? "bg-white/10 text-[#D77E00]" : "text-[#888]"}`}><Grid3X3 className="h-3.5 w-3.5" /></button>
                 <button onClick={() => setView("list")} aria-label="List view" aria-pressed={view === "list"} className={`p-1.5 rounded ${view === "list" ? "bg-white/10 text-[#D77E00]" : "text-[#888]"}`}><List className="h-3.5 w-3.5" /></button>
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -286,7 +289,13 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
             </div>
           )}
 
-          {topTab !== "library" && (
+          {topTab === "videos" && (
+            <div className="flex flex-wrap items-center gap-3 text-[11px]">
+              <p className="text-[#888]">Commercials, brand films and social cuts we produced — synced from our channel.</p>
+              <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-[#D77E00] hover:text-white"><Youtube className="h-4 w-4" /> Watch on YouTube</a>
+            </div>
+          )}
+          {(topTab === "current" || topTab === "do") && (
             <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px]">
               <KindSelect value={kindFilter} onChange={setKindFilter} />
               {topTab === "current" && <p className="text-[#888]">{filteredHosted.length} of {hostedSites.length} live client sites</p>}
@@ -321,6 +330,8 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
             </div>
           </>
         )}
+
+        {topTab === "videos" && <Videos videos={videos} featuredId={featuredVideo} query={q} />}
 
         {topTab === "library" && (
           <>

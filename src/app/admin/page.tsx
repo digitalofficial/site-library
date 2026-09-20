@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { isAdmin } from "@/lib/auth";
 import { loadEntries } from "@/lib/store";
+import { loadVideos } from "@/lib/videos";
 import AdminPanel from "./AdminPanel";
 import LoginForm from "./LoginForm";
 
@@ -11,6 +12,6 @@ export const maxDuration = 60;
 
 export default async function AdminPage() {
   if (!isAdmin()) return <LoginForm />;
-  const { entries, source } = await loadEntries();
-  return <AdminPanel entries={entries} source={source} />;
+  const [{ entries, source }, { videos, settings, source: videoSource }] = await Promise.all([loadEntries(), loadVideos()]);
+  return <AdminPanel entries={entries} source={source} videos={videos} videoSettings={settings} videoSource={videoSource} />;
 }
