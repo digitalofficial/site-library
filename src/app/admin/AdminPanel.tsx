@@ -29,6 +29,12 @@ function Fields({ tab, e }: { tab: Tab; e?: Entry }) {
         <label className={label}>Colour 1<input name="color0" defaultValue={e?.colors[0] ?? "#D77E00"} pattern="#[0-9a-fA-F]{6}" className={input} /></label>
         <label className={label}>Colour 2<input name="color1" defaultValue={e?.colors[1] ?? "#111116"} pattern="#[0-9a-fA-F]{6}" className={input} /></label>
       </div>
+      <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-lg border border-[#D77E00]/20 p-3">
+        <p className="sm:col-span-3 text-[11px] text-[#ffd28a]">Spotlight (optional) — a native app or a one-line brag turns the card orange-ringed with store buttons.</p>
+        <label className={label}>App Store URL<input name="appStore" type="url" defaultValue={e?.appStore} placeholder="https://apps.apple.com/…" className={input} /></label>
+        <label className={label}>Google Play URL<input name="playStore" type="url" defaultValue={e?.playStore} placeholder="https://play.google.com/…" className={input} /></label>
+        <label className={label}>Highlight line<input name="highlight" defaultValue={e?.highlight} placeholder="Booking site + native iOS app" className={input} /></label>
+      </div>
       {tab === "library" ? (
         <>
           <label className={label}>Style generation

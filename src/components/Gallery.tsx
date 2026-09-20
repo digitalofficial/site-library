@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowUpRight, Grid3X3, List, Search, X, Globe, Layout, Rocket, Clapperboard, Youtube } from "lucide-react";
+import { ArrowUpRight, Grid3X3, List, Search, X, Globe, Layout, Rocket, Clapperboard, Youtube, Smartphone, Sparkles } from "lucide-react";
 import Videos from "./Videos";
 import { CHANNEL_URL, type Video } from "@/lib/videos";
-import { KINDS, KIND_LABEL, KIND_HINT, kindOf, type Entry, type Style, type Platform, type Kind } from "@/lib/types";
+import { KINDS, KIND_LABEL, KIND_HINT, kindOf, isSpotlight, type Entry, type Style, type Platform, type Kind } from "@/lib/types";
 
 type TopTab = "library" | "current" | "do" | "videos";
 type View = "grid" | "list";
@@ -65,6 +65,32 @@ function Preview({ thumb, colors }: { thumb: string | null; colors: [string, str
   );
 }
 
+
+/** The extra strip on a spotlight card: app icon + store buttons + brag line. Rendered inside the card link, so buttons are spans styled as buttons. */
+function Spotlight({ e }: { e: Entry }) {
+  if (!isSpotlight(e)) return null;
+  return (
+    <div className="mt-3 pt-3 border-t border-[#D77E00]/20 flex items-center gap-3">
+      {e.appIcon && <img src={e.appIcon} alt="" width={44} height={44} className="h-11 w-11 rounded-[10px] flex-shrink-0 shadow-md shadow-black/40" />}
+      <div className="min-w-0 flex-1">
+        {e.highlight && <p className="text-[11px] font-semibold text-[#ffd28a] leading-snug"><Sparkles className="inline h-3 w-3 mr-1 -mt-0.5" />{e.highlight}</p>}
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          {e.appStore && <span onClick={ev => { ev.preventDefault(); ev.stopPropagation(); window.open(e.appStore, "_blank", "noopener"); }} role="link" tabIndex={0} onKeyDown={ev => { if (ev.key === "Enter") { ev.preventDefault(); window.open(e.appStore, "_blank", "noopener"); } }} className="inline-flex items-center gap-1 rounded-md bg-white text-[#08080C] text-[10px] font-bold px-2 py-1 hover:bg-[#ffd28a]"><Smartphone className="h-3 w-3" /> App Store</span>}
+          {e.playStore && <span onClick={ev => { ev.preventDefault(); ev.stopPropagation(); window.open(e.playStore, "_blank", "noopener"); }} role="link" tabIndex={0} onKeyDown={ev => { if (ev.key === "Enter") { ev.preventDefault(); window.open(e.playStore, "_blank", "noopener"); } }} className="inline-flex items-center gap-1 rounded-md bg-white text-[#08080C] text-[10px] font-bold px-2 py-1 hover:bg-[#ffd28a]"><Smartphone className="h-3 w-3" /> Google Play</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const spotClass = (e: Entry) => isSpotlight(e) ? " border-[#D77E00]/40 shadow-[0_0_0_1px_rgba(215,126,0,.25),0_12px_40px_-12px_rgba(215,126,0,.35)]" : "";
+
+/** Small corner ribbon so the spotlight reads even before the card is scrolled into view. */
+function AppRibbon({ e }: { e: Entry }) {
+  if (!e.appStore && !e.playStore) return null;
+  return <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-[#D77E00] text-[#08080C] text-[10px] font-bold px-2 py-1 shadow-lg shadow-black/40"><Smartphone className="h-3 w-3" /> Native app</span>;
+}
+
 function HostedRow({ site }: { site: HostedSite }) {
   return (
     <a href={site.url} target="_blank" rel="noopener noreferrer" className={rowClass}>
@@ -73,6 +99,7 @@ function HostedRow({ site }: { site: HostedSite }) {
         <div className="flex items-center gap-2">
           <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${platformBadge(site.platform ?? "Next.js")}`}>{site.platform}</span>
+          {(site.appStore || site.playStore) && <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#D77E00] text-[#08080C] flex-shrink-0"><Smartphone className="h-3 w-3" /> App</span>}
         </div>
         <p className="text-[11px] text-[#888] truncate">{site.industry} · {site.url.replace("https://", "")}</p>
       </div>
@@ -83,7 +110,8 @@ function HostedRow({ site }: { site: HostedSite }) {
 
 function HostedCard({ site }: { site: HostedSite }) {
   return (
-    <a href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass}>
+    <a href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass + spotClass(site) + " relative"}>
+      <AppRibbon e={site} />
       <Preview thumb={site.thumb} colors={site.colors} />
       <div className="p-4">
         <div className="flex items-center justify-between mb-1.5">
@@ -92,6 +120,7 @@ function HostedCard({ site }: { site: HostedSite }) {
         </div>
         <p className="text-[11px] text-[#888] leading-relaxed">{site.industry}</p>
         <p className="text-[10px] text-[#9a9aa3] mt-1 truncate">{site.url.replace("https://", "")}</p>
+        <Spotlight e={site} />
       </div>
     </a>
   );
@@ -99,7 +128,8 @@ function HostedCard({ site }: { site: HostedSite }) {
 
 function LibraryCard({ site }: { site: Entry }) {
   return (
-    <a href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass}>
+    <a href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass + spotClass(site) + " relative"}>
+      <AppRibbon e={site} />
       <Preview thumb={site.thumb} colors={site.colors} />
       <div className="p-4">
         <div className="flex items-center justify-between mb-1.5">
@@ -111,6 +141,7 @@ function LibraryCard({ site }: { site: Entry }) {
           <span className={chipClass}>{site.font}</span>
           <span className={chipClass}>{KIND_LABEL[kindOf(site)]}</span>
         </div>
+        <Spotlight e={site} />
       </div>
     </a>
   );

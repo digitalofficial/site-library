@@ -20,6 +20,12 @@ export interface Entry {
   thumb: string | null;
   /** Optional only for documents written before 2026-09-20; see kindOf(). */
   kind?: Kind;
+  // Spotlight: a native app or a one-line brag. Cards with any of these get the highlighted treatment.
+  appStore?: string;
+  playStore?: string;
+  /** App icon URL (pulled from the App Store lookup when appStore is set). */
+  appIcon?: string;
+  highlight?: string;
   // Library (template) fields
   style?: Style;
   font?: string;
@@ -39,3 +45,4 @@ export const slugOf = (name: string) =>
 /** Older documents have no `kind`; fall back to the Library page type. */
 export const kindOf = (e: Entry): Kind => e.kind ?? (e.pages === "single" ? "single" : "multi");
 
+export const isSpotlight = (e: Entry) => !!(e.appStore || e.playStore || e.highlight);

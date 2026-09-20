@@ -44,8 +44,21 @@ async function mutate(fn: (entries: Entry[]) => Entry[] | Promise<Entry[]>): Pro
   }
 }
 
+/** App Store lookup → 512px icon. Best effort: a miss just means no icon on the card. */
+async function appIconFor(appStore: string | undefined): Promise<string | undefined> {
+  const id = appStore?.match(/\/id(\d+)/)?.[1];
+  if (!id) return undefined;
+  try {
+    const r = await fetch(`https://itunes.apple.com/lookup?id=${id}`, { next: { revalidate: 86400 } });
+    const j = (await r.json()) as { results?: { artworkUrl512?: string }[] };
+    return j.results?.[0]?.artworkUrl512;
+  } catch { return undefined; }
+}
+
+const optionalUrl = (v: string, label: string) => { if (!v) return undefined; if (!/^https?:\/\/\S+$/.test(v)) throw new Error(`${label} must be a full https:// link.`); return v; };
+
 /** Pull the editable fields off a form, validating the few that can break the page. */
-function fieldsFrom(form: FormData, tab: Tab): Omit<Entry, "id" | "tab" | "thumb"> {
+async function fieldsFrom(form: FormData, tab: Tab): Promise<Omit<Entry, "id" | "tab" | "thumb">> {
   const str = (k: string) => String(form.get(k) ?? "").trim();
   const name = str("name"), url = str("url"), industry = str("industry");
   if (!name) throw new Error("Name is required.");
@@ -53,7 +66,8 @@ function fieldsFrom(form: FormData, tab: Tab): Omit<Entry, "id" | "tab" | "thumb
   const c0 = str("color0") || "#D77E00", c1 = str("color1") || "#111116";
   if (!HEX.test(c0) || !HEX.test(c1)) throw new Error("Colours must be 6-digit hex like #D77E00.");
   const kind = (KINDS as string[]).includes(str("kind")) ? (str("kind") as Kind) : "multi";
-  const base = { name, industry, url, colors: [c0, c1] as [string, string], kind, pages: (kind === "single" ? "single" : "multi") as Entry["pages"] };
+  const appStore = optionalUrl(str("appStore"), "App Store URL"), playStore = optionalUrl(str("playStore"), "Google Play URL");
+  const base = { name, industry, url, colors: [c0, c1] as [string, string], kind, pages: (kind === "single" ? "single" : "multi") as Entry["pages"], appStore, playStore, appIcon: await appIconFor(appStore), highlight: str("highlight") || undefined };
   if (tab === "library") {
     return {
       ...base,
@@ -71,7 +85,7 @@ export async function addEntry(_: unknown, form: FormData): Promise<ActionResult
   if (!TABS.includes(tab)) return { ok: false, error: "Pick a tab." };
   let captureError: string | null = null;
   const res = await mutate(async entries => {
-    const fields = fieldsFrom(form, tab);
+    const fields = await fieldsFrom(form, tab);
     let id = slugOf(fields.name) || "site";
     while (entries.some(e => e.id === id)) id += "-2";
     let thumb: string | null = null;
@@ -84,10 +98,10 @@ export async function addEntry(_: unknown, form: FormData): Promise<ActionResult
 
 export async function updateEntry(_: unknown, form: FormData): Promise<ActionResult> {
   const id = String(form.get("id"));
-  return mutate(entries => {
+  return mutate(async entries => {
     const i = entries.findIndex(e => e.id === id);
     if (i < 0) throw new Error("Entry not found.");
-    const fields = fieldsFrom(form, entries[i].tab);
+    const fields = await fieldsFrom(form, entries[i].tab);
     return entries.map((e, j) => j === i ? { ...e, ...fields } : e);
   });
 }
