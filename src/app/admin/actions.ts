@@ -1,0 +1,140 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { checkPassword, clearAdminCookie, isAdmin, setAdminCookie } from "@/lib/auth";
+import { captureThumb } from "@/lib/capture";
+import { loadEntries, saveEntries } from "@/lib/store";
+import { del } from "@vercel/blob";
+import { slugOf, TABS, type Entry, type Tab } from "@/lib/types";
+
+export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+export async function login(_: unknown, form: FormData): Promise<ActionResult> {
+  const pw = String(form.get("password") ?? "");
+  if (!checkPassword(pw)) return { ok: false, error: "Wrong password." };
+  setAdminCookie();
+  redirect("/admin");
+}
+
+export async function logout() {
+  clearAdminCookie();
+  redirect("/admin");
+}
+
+function guard() {
+  if (!isAdmin()) throw new Error("Not signed in.");
+}
+
+/** Every mutation: read the list, change it, write it back, wake the gallery. */
+async function mutate(fn: (entries: Entry[]) => Entry[] | Promise<Entry[]>): Promise<ActionResult> {
+  guard();
+  try {
+    const { entries, source } = await loadEntries();
+    if (source === "seed") return { ok: false, error: "Blob store is empty or unreachable — run `npm run seed` first so edits don't overwrite the seed." };
+    const next = await fn(entries);
+    await saveEntries(next);
+    revalidatePath("/", "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Pull the editable fields off a form, validating the few that can break the page. */
+function fieldsFrom(form: FormData, tab: Tab): Omit<Entry, "id" | "tab" | "thumb"> {
+  const str = (k: string) => String(form.get(k) ?? "").trim();
+  const name = str("name"), url = str("url"), industry = str("industry");
+  if (!name) throw new Error("Name is required.");
+  if (!/^https?:\/\/\S+$/.test(url)) throw new Error("URL must start with http:// or https://");
+  const c0 = str("color0") || "#D77E00", c1 = str("color1") || "#111116";
+  if (!HEX.test(c0) || !HEX.test(c1)) throw new Error("Colours must be 6-digit hex like #D77E00.");
+  const base = { name, industry, url, colors: [c0, c1] as [string, string] };
+  if (tab === "library") {
+    return {
+      ...base,
+      style: (str("style") || "V5") as Entry["style"],
+      font: str("font") || "Inter",
+      description: str("description"),
+      pages: (str("pages") || "single") as Entry["pages"],
+      features: str("features").split(",").map(s => s.trim()).filter(Boolean),
+    };
+  }
+  return { ...base, platform: (str("platform") || "Next.js") as Entry["platform"] };
+}
+
+export async function addEntry(_: unknown, form: FormData): Promise<ActionResult> {
+  const tab = String(form.get("tab")) as Tab;
+  if (!TABS.includes(tab)) return { ok: false, error: "Pick a tab." };
+  let captureError: string | null = null;
+  const res = await mutate(async entries => {
+    const fields = fieldsFrom(form, tab);
+    let id = slugOf(fields.name) || "site";
+    while (entries.some(e => e.id === id)) id += "-2";
+    let thumb: string | null = null;
+    try { thumb = await captureThumb(id, fields.url); } catch (e) { captureError = e instanceof Error ? e.message : String(e); }
+    return [...entries, { id, tab, thumb, ...fields }];
+  });
+  if (res.ok && captureError) return { ok: true, message: `Saved, but the thumbnail failed: ${captureError}. Use "Recapture" once the site is reachable.` };
+  return res.ok ? { ok: true, message: "Added — it's live on the site now." } : res;
+}
+
+export async function updateEntry(_: unknown, form: FormData): Promise<ActionResult> {
+  const id = String(form.get("id"));
+  return mutate(entries => {
+    const i = entries.findIndex(e => e.id === id);
+    if (i < 0) throw new Error("Entry not found.");
+    const fields = fieldsFrom(form, entries[i].tab);
+    return entries.map((e, j) => j === i ? { ...e, ...fields } : e);
+  });
+}
+
+export async function moveEntry(id: string, tab: Tab): Promise<ActionResult> {
+  if (!TABS.includes(tab)) return { ok: false, error: "Unknown tab." };
+  return mutate(entries => {
+    const e = entries.find(x => x.id === id);
+    if (!e) throw new Error("Entry not found.");
+    // Moving between tabs changes which fields matter; fill the defaults the new tab needs.
+    const moved: Entry = tab === "library"
+      ? { ...e, tab, style: e.style ?? "V5", font: e.font ?? "Inter", description: e.description ?? "", pages: e.pages ?? "single", features: e.features ?? [] }
+      : { ...e, tab, platform: e.platform ?? "Next.js" };
+    return [...entries.filter(x => x.id !== id), moved]; // lands at the end of its new tab
+  });
+}
+
+/** Old thumbnails are orphans once nothing points at them; failing to delete one is harmless. */
+const dropThumb = (url: string | null | undefined) => url ? del(url).catch(e => console.error("[thumb] delete failed:", e)) : Promise.resolve();
+
+export async function deleteEntry(id: string): Promise<ActionResult> {
+  let old: string | null = null;
+  const res = await mutate(entries => { old = entries.find(e => e.id === id)?.thumb ?? null; return entries.filter(e => e.id !== id); });
+  if (res.ok) await dropThumb(old);
+  return res;
+}
+
+/** Swap with the neighbour in the same tab. Order within a tab = order in the array. */
+export async function nudgeEntry(id: string, dir: -1 | 1): Promise<ActionResult> {
+  return mutate(entries => {
+    const i = entries.findIndex(e => e.id === id);
+    if (i < 0) throw new Error("Entry not found.");
+    const tab = entries[i].tab;
+    let j = i + dir;
+    while (j >= 0 && j < entries.length && entries[j].tab !== tab) j += dir;
+    if (j < 0 || j >= entries.length) return entries;
+    const next = [...entries];
+    [next[i], next[j]] = [next[j], next[i]];
+    return next;
+  });
+}
+
+export async function recaptureEntry(id: string): Promise<ActionResult> {
+  return mutate(async entries => {
+    const e = entries.find(x => x.id === id);
+    if (!e) throw new Error("Entry not found.");
+    const thumb = await captureThumb(id, e.url); // throws → nothing saved, old thumb kept
+    await dropThumb(e.thumb);
+    return entries.map(x => x.id === id ? { ...x, thumb } : x);
+  });
+}

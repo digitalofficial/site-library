@@ -1,10 +1,15 @@
-// Single source of truth for the gallery. `scripts/thumbs.mjs` reads this file
-// (via node --experimental-strip-types) to render public/thumbs/<slug>.webp.
+// Seed data: the portfolio as it stood on 2026-09-20. The live list lives in
+// Vercel Blob (data/sites.json, edited at /admin); this file only renders if
+// Blob is unreachable, and feeds scripts/seed-blob.mjs for a first import.
+import type { Style, PageType, Platform, Entry } from "@/lib/types";
 
-export type Style = "V1" | "V2" | "V3" | "V4" | "V5";
-export type PageType = "single" | "multi";
+// Type-only import above is erased, so `node --experimental-strip-types` can
+// load this file without resolving the "@/" alias. Keep the slug helper local.
+const slugOf = (name: string) =>
+  name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-export interface Site {
+
+interface Site {
   name: string;
   industry: string;
   url: string;
@@ -16,9 +21,8 @@ export interface Site {
   features: string[];
 }
 
-export type Platform = "Vite" | "Next.js" | "WordPress";
 
-export interface HostedSite {
+interface HostedSite {
   name: string;
   industry: string;
   url: string;
@@ -104,6 +108,8 @@ export const sites: Site[] = [
   { name: "Tucson Cleaning Pros", industry: "Cleaning Service", url: "https://tucson-cleaning-pros.vercel.app", style: "V1", colors: ["#111111", "#FFFFFF"], font: "Outfit", description: "Ultra-clean minimal, bubbles, before/after", pages: "multi", features: ["scroll-reveal", "before-after", "marquee"] },
 ];
 
-/** Stable file name for a site's thumbnail: "Bark & Bloom Pet Spa" → "bark-bloom-pet-spa". */
-export const slugOf = (name: string) =>
-  name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+export const seedEntries: Entry[] = [
+  ...sites.map(s => ({ id: slugOf(s.name), tab: "library" as const, name: s.name, industry: s.industry, url: s.url, colors: s.colors, thumb: null, style: s.style, font: s.font, description: s.description, pages: s.pages, features: s.features })),
+  ...hostedSites.map(s => ({ id: slugOf(s.name), tab: "current" as const, name: s.name, industry: s.industry, url: s.url, colors: s.colors, thumb: null, platform: s.platform })),
+  ...doProjects.map(s => ({ id: slugOf(s.name), tab: "do" as const, name: s.name, industry: s.industry, url: s.url, colors: s.colors, thumb: null, platform: s.platform })),
+];
