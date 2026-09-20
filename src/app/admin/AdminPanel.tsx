@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { ArrowUp, ArrowDown, Camera, Pencil, Trash2, ExternalLink, LogOut, Plus, X } from "lucide-react";
-import { TAB_LABEL, TABS, type Entry, type Tab } from "@/lib/types";
+import { TAB_LABEL, TABS, KINDS, KIND_LABEL, KIND_HINT, kindOf, type Entry, type Tab } from "@/lib/types";
 import { addEntry, deleteEntry, logout, moveEntry, nudgeEntry, recaptureEntry, updateEntry, type ActionResult } from "./actions";
 
 const input = "w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/[.1] text-[16px] sm:text-sm text-white focus:outline-none focus:border-[#D77E00]/60";
@@ -20,6 +20,9 @@ function Fields({ tab, e }: { tab: Tab; e?: Entry }) {
       <label className={label}>Name<input name="name" defaultValue={e?.name} required className={input} /></label>
       <label className={label}>URL<input name="url" type="url" defaultValue={e?.url} placeholder="https://" required className={input} /></label>
       <label className={label}>{tab === "library" ? "Industry" : "What it is (one line)"}<input name="industry" defaultValue={e?.industry} className={input} /></label>
+      <label className={label}>Kind
+        <select name="kind" defaultValue={e ? kindOf(e) : "multi"} className={input}>{KINDS.map(k => <option key={k} value={k}>{KIND_LABEL[k]} — {KIND_HINT[k]}</option>)}</select>
+      </label>
       <div className="grid grid-cols-2 gap-3">
         <label className={label}>Colour 1<input name="color0" defaultValue={e?.colors[0] ?? "#D77E00"} pattern="#[0-9a-fA-F]{6}" className={input} /></label>
         <label className={label}>Colour 2<input name="color1" defaultValue={e?.colors[1] ?? "#111116"} pattern="#[0-9a-fA-F]{6}" className={input} /></label>
@@ -28,9 +31,6 @@ function Fields({ tab, e }: { tab: Tab; e?: Entry }) {
         <>
           <label className={label}>Style generation
             <select name="style" defaultValue={e?.style ?? "V5"} className={input}>{["V1","V2","V3","V4","V5","V6"].map(v => <option key={v}>{v}</option>)}</select>
-          </label>
-          <label className={label}>Pages
-            <select name="pages" defaultValue={e?.pages ?? "single"} className={input}><option value="single">Single page</option><option value="multi">Multi page</option></select>
           </label>
           <label className={label}>Font<input name="font" defaultValue={e?.font} className={input} /></label>
           <label className={label}>Features (comma-separated)<input name="features" defaultValue={e?.features?.join(", ")} placeholder="framer-motion, real-photos" className={input} /></label>
@@ -73,7 +73,7 @@ function Row({ e, first, last, onNotice }: { e: Entry; first: boolean; last: boo
           {e.thumb && <img src={e.thumb} alt="" className="absolute inset-0 w-full h-full object-cover object-top" />}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm truncate">{e.name} <span className="font-normal text-[#9a9aa3]">· {e.tab === "library" ? e.style : e.platform}</span></p>
+          <p className="font-bold text-sm truncate">{e.name} <span className="font-normal text-[#9a9aa3]">· {e.tab === "library" ? e.style : e.platform} · {KIND_LABEL[kindOf(e)]}</span></p>
           <a href={e.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#9a9aa3] hover:text-[#D77E00] truncate inline-flex items-center gap-1">{e.url.replace("https://", "")} <ExternalLink className="h-3 w-3" /></a>
         </div>
         <div className="hidden sm:flex flex-col gap-0.5">

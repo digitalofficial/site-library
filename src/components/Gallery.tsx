@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ArrowUpRight, Grid3X3, List, Search, X, Globe, Layout, Rocket } from "lucide-react";
-import type { Entry, Style, PageType, Platform } from "@/lib/types";
+import { KINDS, KIND_LABEL, KIND_HINT, kindOf, type Entry, type Style, type Platform, type Kind } from "@/lib/types";
 
 type TopTab = "library" | "current" | "do";
 type View = "grid" | "list";
@@ -63,41 +63,109 @@ function Preview({ thumb, colors }: { thumb: string | null; colors: [string, str
   );
 }
 
-/** Grid/list of live sites — used by both the Current and DO Projects tabs. */
-function HostedList({ items, view }: { items: HostedSite[]; view: View }) {
-  if (view === "list") return (
-    <div className="space-y-2">
-      {items.map(site => (
-        <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" className={rowClass}>
-          <div className="w-2 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(to bottom, ${site.colors[0]}, ${site.colors[1]})` }} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${platformBadge(site.platform ?? "Next.js")}`}>{site.platform}</span>
+function HostedRow({ site }: { site: HostedSite }) {
+  return (
+    <a href={site.url} target="_blank" rel="noopener noreferrer" className={rowClass}>
+      <div className="w-2 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(to bottom, ${site.colors[0]}, ${site.colors[1]})` }} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${platformBadge(site.platform ?? "Next.js")}`}>{site.platform}</span>
+        </div>
+        <p className="text-[11px] text-[#888] truncate">{site.industry} · {site.url.replace("https://", "")}</p>
+      </div>
+      <ArrowUpRight className="h-4 w-4 text-[#888] group-hover:text-[#D77E00] flex-shrink-0 transition-colors" />
+    </a>
+  );
+}
+
+function HostedCard({ site }: { site: HostedSite }) {
+  return (
+    <a href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass}>
+      <Preview thumb={site.thumb} colors={site.colors} />
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-1.5">
+          <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${platformBadge(site.platform ?? "Next.js")}`}>{site.platform}</span>
+        </div>
+        <p className="text-[11px] text-[#888] leading-relaxed">{site.industry}</p>
+        <p className="text-[10px] text-[#9a9aa3] mt-1 truncate">{site.url.replace("https://", "")}</p>
+      </div>
+    </a>
+  );
+}
+
+function LibraryCard({ site }: { site: Entry }) {
+  return (
+    <a href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass}>
+      <Preview thumb={site.thumb} colors={site.colors} />
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-1.5">
+          <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${styleBadge(site.style ?? "V1")}`}>{site.style}</span>
+        </div>
+        <p className="text-[11px] text-[#888] leading-relaxed">{site.industry} · {site.description}</p>
+        <div className="flex flex-wrap gap-1 mt-2">
+          <span className={chipClass}>{site.font}</span>
+          <span className={chipClass}>{KIND_LABEL[kindOf(site)]}</span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+function LibraryRow({ site }: { site: Entry }) {
+  return (
+    <a href={site.url} target="_blank" rel="noopener noreferrer" className={rowClass}>
+      <div className="w-2 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(to bottom, ${site.colors[0]}, ${site.colors[1]})` }} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${styleBadge(site.style ?? "V1")}`}>{site.style}</span>
+        </div>
+        <p className="text-[11px] text-[#888] truncate">{site.industry} · {site.description}</p>
+      </div>
+      <div className="hidden sm:flex flex-wrap gap-1 max-w-[200px]">
+        {(site.features ?? []).slice(0, 3).map(f => <span key={f} className={chipClass}>{f}</span>)}
+      </div>
+      <ArrowUpRight className="h-4 w-4 text-[#888] group-hover:text-[#D77E00] flex-shrink-0 transition-colors" />
+    </a>
+  );
+}
+
+/** Groups a tab's items by kind (Ecommerce → Business Suite → Single → Multi), one heading per non-empty group. */
+function Sections({ items, view, renderCard, renderRow }: { items: Entry[]; view: View; renderCard: (e: Entry) => React.ReactNode; renderRow: (e: Entry) => React.ReactNode }) {
+  return (
+    <div className="space-y-8">
+      {KINDS.map(k => {
+        const group = items.filter(e => kindOf(e) === k);
+        if (!group.length) return null;
+        return (
+          <section key={k} aria-labelledby={`kind-${k}`}>
+            <div className="flex items-baseline gap-2 mb-3">
+              <h2 id={`kind-${k}`} className="font-bold text-sm sm:text-base">{KIND_LABEL[k]}</h2>
+              <span className="text-[11px] text-[#9a9aa3]">{group.length} · {KIND_HINT[k]}</span>
             </div>
-            <p className="text-[11px] text-[#888] truncate">{site.industry} · {site.url.replace("https://", "")}</p>
-          </div>
-          <ArrowUpRight className="h-4 w-4 text-[#888] group-hover:text-[#D77E00] flex-shrink-0 transition-colors" />
-        </a>
-      ))}
+            {view === "grid"
+              ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{group.map(renderCard)}</div>
+              : <div className="space-y-2">{group.map(renderRow)}</div>}
+          </section>
+        );
+      })}
     </div>
   );
+}
+
+function HostedList({ items, view }: { items: HostedSite[]; view: View }) {
+  return <Sections items={items} view={view} renderCard={s => <HostedCard key={s.url} site={s} />} renderRow={s => <HostedRow key={s.url} site={s} />} />;
+}
+
+function KindSelect({ value, onChange }: { value: Kind | "All"; onChange: (k: Kind | "All") => void }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {items.map(site => (
-        <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass}>
-          <Preview thumb={site.thumb} colors={site.colors} />
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${platformBadge(site.platform ?? "Next.js")}`}>{site.platform}</span>
-            </div>
-            <p className="text-[11px] text-[#888] leading-relaxed">{site.industry}</p>
-            <p className="text-[10px] text-[#9a9aa3] mt-1 truncate">{site.url.replace("https://", "")}</p>
-          </div>
-        </a>
-      ))}
-    </div>
+    <select value={value} onChange={e => onChange(e.target.value as Kind | "All")} aria-label="Kind of site" className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[10px] sm:text-[11px] text-[#ccc]">
+      <option value="All">All kinds</option>
+      {KINDS.map(k => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
+    </select>
   );
 }
 
@@ -125,25 +193,25 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
   const [view, setView] = useState<View>("grid");
   const [search, setSearch] = useState<Record<TopTab, string>>({ library: "", current: "", do: "" });
   const [styleFilter, setStyleFilter] = useState<Style | "All">("All");
-  const [pageFilter, setPageFilter] = useState<PageType | "All">("All");
+  const [kindFilter, setKindFilter] = useState<Kind | "All">("All");
   const [industryFilter, setIndustryFilter] = useState("All");
   const [featureFilter, setFeatureFilter] = useState("All");
 
   const q = search[topTab];
   const setQ = (v: string) => setSearch(s => ({ ...s, [topTab]: v }));
-  const clearFilters = () => { setStyleFilter("All"); setPageFilter("All"); setIndustryFilter("All"); setFeatureFilter("All"); setQ(""); };
-  const filtersActive = styleFilter !== "All" || pageFilter !== "All" || industryFilter !== "All" || featureFilter !== "All" || !!q;
+  const clearFilters = () => { setStyleFilter("All"); setKindFilter("All"); setIndustryFilter("All"); setFeatureFilter("All"); setQ(""); };
+  const filtersActive = styleFilter !== "All" || kindFilter !== "All" || industryFilter !== "All" || featureFilter !== "All" || !!q;
 
   const filtered = useMemo(() => sites.filter(s =>
     (styleFilter === "All" || s.style === styleFilter) &&
-    (pageFilter === "All" || s.pages === pageFilter) &&
+    (kindFilter === "All" || kindOf(s) === kindFilter) &&
     (industryFilter === "All" || s.industry === industryFilter) &&
     (featureFilter === "All" || (s.features ?? []).includes(featureFilter)) &&
     matches(q, s.name, s.industry)
-  ), [sites, styleFilter, pageFilter, industryFilter, featureFilter, q]);
+  ), [sites, styleFilter, kindFilter, industryFilter, featureFilter, q]);
 
-  const filteredHosted = useMemo(() => hostedSites.filter(s => matches(q, s.name, s.industry)), [hostedSites, q]);
-  const filteredDo = useMemo(() => doProjects.filter(s => matches(q, s.name, s.industry)), [doProjects, q]);
+  const filteredHosted = useMemo(() => hostedSites.filter(s => (kindFilter === "All" || kindOf(s) === kindFilter) && matches(q, s.name, s.industry)), [hostedSites, kindFilter, q]);
+  const filteredDo = useMemo(() => doProjects.filter(s => (kindFilter === "All" || kindOf(s) === kindFilter) && matches(q, s.name, s.industry)), [doProjects, kindFilter, q]);
 
   const counts = Object.fromEntries((["V1","V2","V3","V4","V5","V6"] as const).map(v => [v, sites.filter(s => s.style === v).length])) as Record<Style, number>;
 
@@ -203,11 +271,7 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
                 ))}
               </div>
               <span className="text-[#333] hidden sm:inline" aria-hidden>|</span>
-              <select value={pageFilter} onChange={e => setPageFilter(e.target.value as PageType | "All")} aria-label="Page type" className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[10px] sm:text-[11px] text-[#ccc]">
-                <option value="All">All Pages</option>
-                <option value="single">Single Page</option>
-                <option value="multi">Multi Page</option>
-              </select>
+              <KindSelect value={kindFilter} onChange={setKindFilter} />
               <select value={industryFilter} onChange={e => setIndustryFilter(e.target.value)} aria-label="Industry" className="bg-white/[.04] border border-white/[.08] rounded-lg px-2 py-1 text-[10px] sm:text-[11px] text-[#ccc]">
                 <option value="All">All Industries</option>
                 {allIndustries.map(i => <option key={i} value={i}>{i}</option>)}
@@ -222,8 +286,14 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
             </div>
           )}
 
-          {topTab === "current" && <p className="text-[11px] text-[#888]">{filteredHosted.length} of {hostedSites.length} live client sites</p>}
-          {topTab === "do" && <p className="text-[11px] text-[#888]">Companies we started under Digital Official — our own products, built on the same stack we build for clients.</p>}
+          {topTab !== "library" && (
+            <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px]">
+              <KindSelect value={kindFilter} onChange={setKindFilter} />
+              {topTab === "current" && <p className="text-[#888]">{filteredHosted.length} of {hostedSites.length} live client sites</p>}
+              {topTab === "do" && <p className="text-[#888]">Companies we started under Digital Official — our own products.</p>}
+              {kindFilter !== "All" && <button onClick={() => setKindFilter("All")} className="text-[#D77E00] hover:text-white px-2 py-1">Clear</button>}
+            </div>
+          )}
         </div>
       </header>
 
@@ -254,46 +324,7 @@ export default function Gallery({ entries }: { entries: Entry[] }) {
 
         {topTab === "library" && (
           <>
-            {view === "grid" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map(site => (
-                  <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" className={cardClass}>
-                    <Preview thumb={site.thumb} colors={site.colors} />
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${styleBadge(site.style ?? "V1")}`}>{site.style}</span>
-                      </div>
-                      <p className="text-[11px] text-[#888] leading-relaxed">{site.industry} · {site.description}</p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        <span className={chipClass}>{site.font}</span>
-                        <span className={chipClass}>{site.pages === "multi" ? "Multi-page" : "Single page"}</span>
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filtered.map(site => (
-                  <a key={site.url} href={site.url} target="_blank" rel="noopener noreferrer" className={rowClass}>
-                    <div className="w-2 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(to bottom, ${site.colors[0]}, ${site.colors[1]})` }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h2 className="font-bold text-sm group-hover:text-[#D77E00] transition-colors truncate">{site.name}</h2>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${styleBadge(site.style ?? "V1")}`}>{site.style}</span>
-                        <span className={`${chipClass} flex-shrink-0`}>{site.pages === "multi" ? "Multi" : "Single"}</span>
-                      </div>
-                      <p className="text-[11px] text-[#888] truncate">{site.industry} · {site.description}</p>
-                    </div>
-                    <div className="hidden sm:flex flex-wrap gap-1 max-w-[200px]">
-                      {(site.features ?? []).slice(0, 3).map(f => <span key={f} className={chipClass}>{f}</span>)}
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-[#888] group-hover:text-[#D77E00] flex-shrink-0 transition-colors" />
-                  </a>
-                ))}
-              </div>
-            )}
+            <Sections items={filtered} view={view} renderCard={s => <LibraryCard key={s.url} site={s} />} renderRow={s => <LibraryRow key={s.url} site={s} />} />
 
             {filtered.length === 0 && <Empty label="filters" onClear={clearFilters} />}
 

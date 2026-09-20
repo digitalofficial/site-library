@@ -6,7 +6,7 @@ import { checkPassword, clearAdminCookie, isAdmin, setAdminCookie } from "@/lib/
 import { captureThumb } from "@/lib/capture";
 import { loadEntries, saveEntries } from "@/lib/store";
 import { del } from "@vercel/blob";
-import { slugOf, TABS, type Entry, type Tab } from "@/lib/types";
+import { slugOf, TABS, KINDS, type Entry, type Tab, type Kind } from "@/lib/types";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -51,14 +51,14 @@ function fieldsFrom(form: FormData, tab: Tab): Omit<Entry, "id" | "tab" | "thumb
   if (!/^https?:\/\/\S+$/.test(url)) throw new Error("URL must start with http:// or https://");
   const c0 = str("color0") || "#D77E00", c1 = str("color1") || "#111116";
   if (!HEX.test(c0) || !HEX.test(c1)) throw new Error("Colours must be 6-digit hex like #D77E00.");
-  const base = { name, industry, url, colors: [c0, c1] as [string, string] };
+  const kind = (KINDS as string[]).includes(str("kind")) ? (str("kind") as Kind) : "multi";
+  const base = { name, industry, url, colors: [c0, c1] as [string, string], kind, pages: (kind === "single" ? "single" : "multi") as Entry["pages"] };
   if (tab === "library") {
     return {
       ...base,
-      style: (str("style") || "V5") as Entry["style"],
+      style: (str("style") || "V6") as Entry["style"],
       font: str("font") || "Inter",
       description: str("description"),
-      pages: (str("pages") || "single") as Entry["pages"],
       features: str("features").split(",").map(s => s.trim()).filter(Boolean),
     };
   }
